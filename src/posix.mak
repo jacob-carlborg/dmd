@@ -79,8 +79,8 @@ CC=$(HOST_CC) $(MODEL_FLAG) $(TARGET_CFLAGS)
 
 WARNINGS=-Wno-deprecated -Wstrict-aliasing
 
-#GFLAGS = $(WARNINGS) -D__pascal= -fno-exceptions -g -DDEBUG=1 -DUNITTEST $(COV)
-GFLAGS = $(WARNINGS) -D__pascal= -fno-exceptions -O2
+GFLAGS = $(WARNINGS) -D__pascal= -fno-exceptions -g -DDEBUG=1 -DUNITTEST $(COV)
+#GFLAGS = $(WARNINGS) -D__pascal= -fno-exceptions -O2
 
 CFLAGS = $(GFLAGS) -I$(ROOT) -DMARS=1 -DTARGET_$(TARGET)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1
 MFLAGS = $(GFLAGS) -I$C -I$(TK) -I$(ROOT) -DMARS=1 -DTARGET_$(TARGET)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1
@@ -93,7 +93,7 @@ DMD_OBJS = \
 	cast.o code.o cg.o cgcod.o cgcs.o cgelem.o cgen.o \
 	cgreg.o class.o cod5.o \
 	constfold.o irstate.o cond.o debug.o \
-	declaration.o dsymbol.o dt.o dump.o e2ir.o ee.o eh.o el.o \
+	declaration.o dmacro.o dsymbol.o dt.o dump.o e2ir.o ee.o eh.o el.o \
 	dwarf.o enum.o evalu8.o expression.o func.o gdag.o gflow.o \
 	glocal.o gloop.o glue.o gnuc.o go.o gother.o iasm.o id.o \
 	identifier.o impcnvtab.o import.o inifile.o init.o inline.o \
@@ -116,7 +116,7 @@ else
 endif
 
 SRC = win32.mak posix.mak \
-	mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c \
+	mars.c enum.c struct.c dmacro.c dsymbol.c import.c idgen.c impcnvgen.c \
 	identifier.c mtype.c expression.c optimize.c template.h \
 	template.c lexer.c declaration.c cast.c cond.h cond.c link.c \
 	aggregate.h parse.c statement.c constfold.c version.h version.c \
@@ -331,6 +331,9 @@ declaration.o: declaration.c
 	$(CC) -c $(CFLAGS) $<
 
 delegatize.o: delegatize.c
+	$(CC) -c $(CFLAGS) $<
+
+dmacro.o: dmacro.c
 	$(CC) -c $(CFLAGS) $<
 
 doc.o: doc.c
@@ -629,6 +632,7 @@ gcov:
 	gcov constfold.c
 	gcov declaration.c
 	gcov delegatize.c
+	gcov dmacro.c
 	gcov doc.c
 	gcov dsymbol.c
 	gcov dump.c

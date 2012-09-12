@@ -80,6 +80,7 @@ struct Parser : Lexer
     Expression *parseConstraint();
     TemplateDeclaration *parseTemplateDeclaration(int ismixin);
     TemplateParameters *parseTemplateParameterList(int flag = 0);
+	Dsymbol *parseMacroDeclaration();
     Dsymbol *parseMixin();
     Objects *parseTemplateArgumentList();
     Objects *parseTemplateArgumentList2();

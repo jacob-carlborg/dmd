@@ -39,6 +39,7 @@ struct FuncDeclaration;
 struct FuncAliasDeclaration;
 struct FuncLiteralDeclaration;
 struct CtorDeclaration;
+struct MacroDeclaration;
 struct PostBlitDeclaration;
 struct DtorDeclaration;
 struct StaticCtorDeclaration;
@@ -239,6 +240,8 @@ struct Dsymbol : Object
     virtual StructDeclaration *isStructDeclaration() { return NULL; }
     virtual UnionDeclaration *isUnionDeclaration() { return NULL; }
     virtual InterfaceDeclaration *isInterfaceDeclaration() { return NULL; }
+    virtual MacroDeclaration *isMacroDeclaration() { return NULL; }
+
     virtual ScopeDsymbol *isScopeDsymbol() { return NULL; }
     virtual WithScopeSymbol *isWithScopeSymbol() { return NULL; }
     virtual ArrayScopeSymbol *isArrayScopeSymbol() { return NULL; }

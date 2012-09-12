@@ -34,6 +34,7 @@
 #include "id.h"
 #include "version.h"
 #include "aliasthis.h"
+#include "dmacro.h"
 
 // How multiple declarations are parsed.
 // If 1, treat as C.
@@ -224,6 +225,10 @@ Dsymbols *Parser::parseDeclDefs(int once)
                 }
                 break;
             }
+
+            case TOKmacro:
+                s = parseMacroDeclaration();
+                break;
 
             case BASIC_TYPES:
             case TOKalias:
@@ -2707,6 +2712,35 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
     }
 
     return ts;
+}
+
+Dsymbol* Parser::parseMacroDeclaration ()
+{
+    Identifier* id;
+    Loc location = this->loc;
+    
+    nextToken();
+
+    if (token.value != TOKidentifier)
+    {
+        error("MacroIdentifier expected following macro");
+        return NULL;
+    }
+
+    id = token.ident;
+    nextToken();
+
+    int varargs;
+    Parameters* parameters = parseParameters(&varargs);
+
+    StorageClass storageClass = parsePostfix();
+    Type* typeFunction = new TypeFunction(parameters, NULL, varargs, linkage, storageClass);
+    typeFunction = typeFunction->addSTC(storageClass);
+
+    MacroDeclaration* declaration = new MacroDeclaration(location, 0, id, storageClass, typeFunction);
+    parseContracts(declaration);
+
+    return declaration;
 }
 
 /**********************************
