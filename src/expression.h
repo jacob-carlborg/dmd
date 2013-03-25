@@ -1326,6 +1326,16 @@ ASSIGNEXP(Cat)
 #undef X
 #undef ASSIGNEXP
 
+struct NamedArgumentExp : UnaExp
+{
+    Identifier* argName;
+
+    NamedArgumentExp (Loc loc, Identifier* name, Expression* e);
+    Expression* syntaxCopy ();
+    Expression* semantic (Scope* scope);
+    void toCBuffer (OutBuffer* buffer, HdrGenState* hgs);
+};
+
 struct AddExp : BinExp
 {
     AddExp(Loc loc, Expression *e1, Expression *e2);

@@ -1440,6 +1440,12 @@ void argExpTypesToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *h
 
             if (i)
                 buf->writeByte(',');
+
+            if (e->op == TOKnamedarg)
+            {
+                buf->writestring(((NamedArgumentExp *)e)->argName->toChars());
+                buf->writeByte(':');
+            }
             argbuf.reset();
             e->type->toCBuffer2(&argbuf, hgs, 0);
             buf->write(&argbuf);
@@ -8732,6 +8738,33 @@ Expression *AddrExp::semantic(Scope *sc)
 void AddrExp::checkEscape()
 {
     e1->checkEscapeRef();
+}
+
+/************************************************************/
+
+NamedArgumentExp::NamedArgumentExp(Loc loc, Identifier* name, Expression* e)
+    : UnaExp(loc, TOKnamedarg, sizeof(NamedArgumentExp), e)
+{
+    this->argName = name;
+}
+
+Expression* NamedArgumentExp::syntaxCopy ()
+{
+    return new NamedArgumentExp(loc, argName, e1->syntaxCopy());
+}
+
+Expression* NamedArgumentExp::semantic (Scope* scope)
+{
+    e1->semantic(scope);
+    type = e1->type;
+    return this;
+}
+
+void NamedArgumentExp::toCBuffer (OutBuffer* buffer, HdrGenState* hgs)
+{
+    buffer->writestring(argName->toChars());
+    buffer->writeByte(':');
+    e1->toCBuffer(buffer, hgs);
 }
 
 /************************************************************/

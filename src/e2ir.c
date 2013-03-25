@@ -158,6 +158,10 @@ elem *callfunc(Loc loc,
         {   Expression *arg = (*arguments)[i];
             elem *ea;
 
+            // Peel named argument
+            if (arg->op == TOKnamedarg)
+                arg = ((NamedArgumentExp *) arg)->e1;
+
             //printf("\targ[%d]: %s\n", i, arg->toChars());
 
             size_t nparams = Parameter::dim(tf->parameters);

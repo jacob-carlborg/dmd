@@ -174,6 +174,7 @@ enum TOK
         TOKgoesto,
         TOKvector,
         TOKpound,
+        TOKnamedarg,
 #endif
 
         TOKMAX

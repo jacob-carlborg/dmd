@@ -6784,7 +6784,17 @@ Expressions *Parser::parseArguments()
         nextToken();
         while (token.value != endtok && token.value != TOKeof)
         {
+                Identifier* name = NULL;
+                if (token.value == TOKidentifier && peek(&token)->value == TOKcolon)
+                {
+                    // found named argument
+                    name = token.ident;
+                    nextToken(); // skip identifier
+                    nextToken(); // skip colon
+                }
                 arg = parseAssignExp();
+                if (name)
+                    arg = new NamedArgumentExp(arg->loc, name, arg);
                 arguments->push(arg);
                 if (token.value == endtok)
                     break;
