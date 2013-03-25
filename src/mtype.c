@@ -5936,6 +5936,16 @@ MATCH TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
             //printf("match %d\n", m);
         }
 
+        // Check for named arguments
+        if (arg->op == TOKnamedarg)
+        {
+            NamedArgumentExp* narg = (NamedArgumentExp *)arg;
+            if (narg->argName != p->ident)
+                goto Nomatch;
+            else
+                arg = narg->e1;
+        }
+
         // Non-lvalues do not match ref or out parameters
         if (p->storageClass & STCref)
         {
