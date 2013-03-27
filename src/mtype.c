@@ -5940,7 +5940,7 @@ MATCH TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
         if (arg->op == TOKnamedarg)
         {
             NamedArgumentExp* narg = (NamedArgumentExp *)arg;
-            if (narg->argName != p->ident)
+            if (p->ident->toChars()[0] != '_' && narg->argName != p->ident)
                 goto Nomatch;
             else
                 arg = narg->e1;

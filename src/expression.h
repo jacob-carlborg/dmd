@@ -1334,6 +1334,8 @@ struct NamedArgumentExp : UnaExp
     Expression* syntaxCopy ();
     Expression* semantic (Scope* scope);
     void toCBuffer (OutBuffer* buffer, HdrGenState* hgs);
+
+    elem *toElem(IRState *irs);
 };
 
 struct AddExp : BinExp

@@ -2158,6 +2158,17 @@ elem *PostExp::toElem(IRState *irs)
     return e;
 }
 
+/********************************************
+ */
+
+elem *NamedArgumentExp::toElem(IRState *irs)
+{
+    elem *e = e1->toElem(irs);
+    return e;
+}
+
+
+
 //////////////////////////// Binary ///////////////////////////////
 
 /********************************************
