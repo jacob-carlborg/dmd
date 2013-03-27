@@ -1,10 +1,7 @@
-import core.vararg;
-import std.stdio;
 
 void test(A...)(A a)
 {
-    foreach(t; a)
-        writeln(t);
+
 }
 
 void main ()
