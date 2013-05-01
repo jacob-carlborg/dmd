@@ -36,7 +36,11 @@ int lambdaCanThrow(Expression *e, void *param);
 
 struct CanThrow
 {
+#if DMD_OBJC
     int can;
+#else
+    bool can;
+#endif
     bool mustnot;
 };
 

@@ -36,6 +36,10 @@
 #include "json.h"
 #include "declaration.h"
 
+#if DMD_OBJC
+#include "objc.h"
+#endif
+
 int response_expand(size_t *pargc, const char ***pargv);
 void browse(const char *url);
 void getenv_setargv(const char *envvar, size_t *pargc, const char** *pargv);
@@ -1225,6 +1229,9 @@ Language changes listed by -transition=id:\n\
     Module::init();
     Target::init();
     Expression::init();
+#if DMD_OBJC
+    ObjcSymbols::init();
+#endif
     initPrecedence();
     builtin_init();
 

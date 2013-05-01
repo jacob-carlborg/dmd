@@ -138,7 +138,10 @@ StringTable *ObjcSymbols::sprototable = NULL;
 static StringTable *initStringTable(StringTable *stringtable)
 {
     delete stringtable;
-    return new StringTable();
+    stringtable = new StringTable();
+    stringtable->init();
+
+    return stringtable;
 }
 
 void ObjcSymbols::init()
@@ -166,6 +169,8 @@ void ObjcSymbols::init()
     // also wipe out segment numbers
     for (int s = 0; s < SEG_MAX; ++s)
         seg_list[s] = 0;
+
+    ObjcSelector::init();
 }
 
 Symbol *ObjcSymbols::getMsgSend(Type *ret, int hasHiddenArg)
@@ -632,6 +637,11 @@ const char *ObjcSelectorBuilder::toString()
 
 StringTable ObjcSelector::stringtable;
 int ObjcSelector::incnum = 0;
+
+void ObjcSelector::init ()
+{
+    stringtable.init();
+}
 
 ObjcSelector::ObjcSelector(const char *sv, size_t len, size_t pcount)
 {
