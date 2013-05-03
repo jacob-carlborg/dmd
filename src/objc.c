@@ -18,6 +18,7 @@
 #include "oper.h"
 #include "global.h"
 #include "mach.h"
+#include "scope.h"
 
 #define DMD_OBJC_ALIGN 2
 
@@ -1200,7 +1201,10 @@ Type *TypeObjcSelector::semantic(Loc loc, Scope *sc)
         //printf("already done\n");
         return this;
     }
-    next = next->semantic(loc,sc);
+    Scope* newScope = new Scope(*sc);
+    newScope->linkage = LINKobjc;
+    next = next->semantic(loc,newScope);
+
     return merge();
 }
 
