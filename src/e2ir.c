@@ -2075,8 +2075,9 @@ elem *AssertExp::toElem(IRState *irs)
         if (global.params.useInvariants && t1->ty == Tclass &&
             ((TypeClass *)t1)->sym->objc)
         {
+            ts = symbol_genauto(t1->toCtype());
             // Call Objective-C invariant
-            e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DINVARIANT_OBJC]), e);
+            einv = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DINVARIANT_OBJC]), el_var(ts));
         }
         else
 #endif
