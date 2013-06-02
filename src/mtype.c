@@ -9116,6 +9116,16 @@ L1:
             e = e->semantic(sc);
             return e;
         }
+#if DMD_OBJC
+        if (sym->objc && d->isFuncDeclaration() && d->isStatic() && ((FuncDeclaration *)d)->objcSelector)
+        {
+            // Objective-C class methods uses the class object as 'this'
+            DotVarExp *de = new DotVarExp(e->loc, new ObjcClassRefExp(e->loc, sym), d);
+            e = de->semantic(sc);
+            return e;
+        }
+        else
+#endif
         if (d->needThis() && sc->intypeof != 1)
         {
             /* Rewrite as:
@@ -9179,15 +9189,6 @@ L1:
                 }
             }
         }
-#if DMD_OBJC
-        else if (sym->objc && d->isFuncDeclaration() && d->isStatic() && ((FuncDeclaration *)d)->objcSelector)
-        {
-            // Objective-C class methods uses the class object as 'this'
-            DotVarExp *de = new DotVarExp(e->loc, new ObjcClassRefExp(e->loc, sym), d);
-            e = de->semantic(sc);
-            return e;
-        }
-#endif
         //printf("e = %s, d = %s\n", e->toChars(), d->toChars());
         accessCheck(e->loc, sc, e, d);
         VarExp *ve = new VarExp(e->loc, d, 1);
