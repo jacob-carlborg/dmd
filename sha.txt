@@ -1,0 +1,3 @@
+DMD: 2de30b3cd95c6e59e2acc90d72adb1b1c8a99afc
+druntime: e454ea9d28abb926faaa59afbf37ace368b5bd30
+Phobos: 7b85f7a479b2f3c0217b74d2cb3ca2af1729cc60
