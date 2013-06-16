@@ -9598,6 +9598,11 @@ Expression *AddrExp::semantic(Scope *sc)
                     f->tookAddressOf++;
 
                 Expression *e;
+#if DMD_OBJC
+                if (f->needThis() && f->objcSelector)
+                    e = new ObjcSelectorExp(loc, f, dve->hasOverloads);
+                else
+#endif
                 if ( f->needThis())
                     e = new DelegateExp(loc, dve->e1, f, dve->hasOverloads);
                 else // It is a function pointer. Convert &v.f() --> (v, &V.f())
