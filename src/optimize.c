@@ -491,7 +491,9 @@ Expression *CallExp::optimize(int result, bool keepLvalue)
     {
         Type *t1 = e1->type->toBasetype();
         if (t1->ty == Tdelegate) t1 = t1->nextOf();
+#if DMD_OBJC
         if (t1->ty == Tobjcselector) t1 = t1->nextOf();
+#endif
         assert(t1->ty == Tfunction);
         TypeFunction *tf = (TypeFunction *)t1;
         size_t pdim = Parameter::dim(tf->parameters) - (tf->varargs == 2 ? 1 : 0);
