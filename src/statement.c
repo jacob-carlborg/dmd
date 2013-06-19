@@ -5583,7 +5583,7 @@ Catch *objcMakeCatch(Loc loc, Catches *objccatches, Scope *sc)
     {
         Catch *c = objccatches->tdata()[i];
         assert(c->type->ty == Tclass);
-        creflist->push(new CastExp(0, new ObjcClassRefExp(0, ((TypeClass *)c->type)->sym), Type::tvoidptr));
+        creflist->push(new CastExp(Loc(), new ObjcClassRefExp(Loc(), ((TypeClass *)c->type)->sym), Type::tvoidptr));
     }
     VarDeclaration *varobjcexclsref = new VarDeclaration(loc, new TypeSArray(Type::tvoidptr, new IntegerExp(objccatches->dim)), Lexer::uniqueId("__objc_ex_cls_ref"), new ExpInitializer(loc, new ArrayLiteralExp(loc, creflist)));
     varobjcexclsref->parent = sc->parent;
@@ -5594,7 +5594,7 @@ Catch *objcMakeCatch(Loc loc, Catches *objccatches, Scope *sc)
     // void* __objc_ex = _dobjc_exception_extract(cast(void*)__ex);
     Identifier *idex = Lexer::uniqueId("__ex");
     FuncDeclaration *eextractfun = FuncDeclaration::genCfunc(Type::tvoidptr, "_dobjc_exception_extract", Type::tvoidptr);
-    Expression *eextract = new CallExp(0, new VarExp(0, eextractfun), new CastExp(0, new IdentifierExp(0, idex), Type::tvoidptr));
+    Expression *eextract = new CallExp(Loc(), new VarExp(Loc(), eextractfun), new CastExp(Loc(), new IdentifierExp(Loc(), idex), Type::tvoidptr));
     VarDeclaration *varobjcex = new VarDeclaration(loc, Type::tvoidptr, Lexer::uniqueId("__objc_ex"), new ExpInitializer(loc, eextract));
     varobjcex->parent = sc->parent;
     sc->insert(varobjcex);
@@ -5615,8 +5615,8 @@ Catch *objcMakeCatch(Loc loc, Catches *objccatches, Scope *sc)
 
     // default: throw cast(Throwable)cast(void*)__e;
     {
-        Statement *s = new ThrowStatement(0, new CastExp(0, new CastExp(0, new IdentifierExp(0, idex), Type::tvoidptr), ClassDeclaration::throwable->type));
-        a->push(new DefaultStatement(0, s));
+        Statement *s = new ThrowStatement(Loc(), new CastExp(Loc(), new CastExp(Loc(), new IdentifierExp(Loc(), idex), Type::tvoidptr), ClassDeclaration::throwable->type));
+        a->push(new DefaultStatement(Loc(), s));
     }
 
     // cases 0...
@@ -5625,14 +5625,14 @@ Catch *objcMakeCatch(Loc loc, Catches *objccatches, Scope *sc)
         Catch *c = objccatches->tdata()[i];
 
         // create handler for this case
-        ExpInitializer *iinex = new ExpInitializer(loc, new CastExp(0, new VarExp(0, varobjcex), c->type));
+        ExpInitializer *iinex = new ExpInitializer(loc, new CastExp(Loc(), new VarExp(Loc(), varobjcex), c->type));
         VarDeclaration *varinex = new VarDeclaration(loc, c->type, c->ident, iinex);
         varinex->parent = sc->parent;
         sc->insert(varinex);
         Statement *s = new ExpStatement(loc, new DeclarationExp(loc, varinex));
-        s = new CompoundStatement(0, s, c->handler);
-        s = new CompoundStatement(0, s, new BreakStatement(0, NULL));
-        s = new CaseStatement(0, new IntegerExp(i), s);
+        s = new CompoundStatement(Loc(), s, c->handler);
+        s = new CompoundStatement(Loc(), s, new BreakStatement(Loc(), NULL));
+        s = new CaseStatement(Loc(), new IntegerExp(i), s);
         a->push(s);
     }
 
@@ -5711,7 +5711,7 @@ Statement *ObjcExceptionBridge::semantic(Scope *sc)
 
         Identifier *idex = Lexer::uniqueId("__ex");
         FuncDeclaration *fhandler = FuncDeclaration::genCfunc(Type::tvoid, "_dobjc_throwAs_objc", Type::tvoidptr);
-        Statement *handler = new ExpStatement(loc, new CallExp(loc, new VarExp(0, fhandler), new CastExp(loc, new IdentifierExp(loc, idex), Type::tvoidptr)));
+        Statement *handler = new ExpStatement(loc, new CallExp(loc, new VarExp(Loc(), fhandler), new CastExp(loc, new IdentifierExp(loc, idex), Type::tvoidptr)));
         handler = new CompoundStatement(loc, handler, new ExpStatement(loc, new HaltExp(loc)));
 
         Catch *c = new Catch(loc, NULL, idex, handler);
@@ -5761,14 +5761,14 @@ Statement *ObjcExceptionBridge::semantic(Scope *sc)
         VarDeclaration *varedata = new VarDeclaration(loc, tedata, Lexer::uniqueId("__dobjc_ex_data"), new VoidInitializer(loc));
         varedata->semantic(sc);
         a->push(new ExpStatement(loc, new DeclarationExp(loc, varedata)));
-        a->push(new ExpStatement(loc, new CallExp(loc, new VarExp(0, ftry_enter), new DotIdExp(loc, new VarExp(loc, varedata), Id::ptr))));
+        a->push(new ExpStatement(loc, new CallExp(loc, new VarExp(Loc(), ftry_enter), new DotIdExp(loc, new VarExp(loc, varedata), Id::ptr))));
 
-        Expression *cond = new CallExp(loc, new VarExp(0, fsetjmp), new DotIdExp(loc, new VarExp(loc, varedata), Id::ptr));
+        Expression *cond = new CallExp(loc, new VarExp(Loc(), fsetjmp), new DotIdExp(loc, new VarExp(loc, varedata), Id::ptr));
         cond = new NotExp(loc, cond);
-        Statement *etry_exit = new ExpStatement(loc, new CallExp(loc, new VarExp(0, ftry_exit), new DotIdExp(loc, new VarExp(loc, varedata), Id::ptr)));
+        Statement *etry_exit = new ExpStatement(loc, new CallExp(loc, new VarExp(Loc(), ftry_exit), new DotIdExp(loc, new VarExp(loc, varedata), Id::ptr)));
         TryFinallyStatement *ifbody = new TryFinallyStatement(loc, new PeelStatement(body), etry_exit);
         ifbody->objcdisable = 1; // make try-finally D-EH-only
-        Statement *elsebody = new ExpStatement(loc, new CallExp(loc, new VarExp(0, fthrowd), new CallExp(loc, new VarExp(0, fextract), new DotIdExp(loc, new VarExp(loc, varedata), Id::ptr))));
+        Statement *elsebody = new ExpStatement(loc, new CallExp(loc, new VarExp(Loc(), fthrowd), new CallExp(loc, new VarExp(Loc(), fextract), new DotIdExp(loc, new VarExp(loc, varedata), Id::ptr))));
         elsebody = new CompoundStatement(loc, elsebody, new ExpStatement(loc, new HaltExp(loc)));
         a->push(new IfStatement(loc, NULL, cond, ifbody, elsebody));
 

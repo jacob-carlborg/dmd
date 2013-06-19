@@ -789,7 +789,7 @@ void FuncDeclaration::semantic(Scope *sc)
                 if (cd->objcMethods == NULL)
                 {
                     cd->objcMethods = new StringTable;
-                    cd->objcMethods->init();
+                    cd->objcMethods->_init();
                 }
                 StringValue *sv = cd->objcMethods->update(objcSelector->stringvalue, objcSelector->stringlen);
 
@@ -1857,7 +1857,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 {   // Objective-C linkage must throw using Objective-C EH.
                     if ((blockexit & BEthrow))
                     {   fbody = new PeelStatement(fbody);
-                        fbody = new ObjcExceptionBridge(0, fbody, THROWobjc);
+                        fbody = new ObjcExceptionBridge(Loc(), fbody, THROWobjc);
                         fbody = fbody->semantic(sc2);
                     }
                 }
@@ -1865,7 +1865,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 {   // other functions must throw using D EH.
                     if (blockexit & BEthrowobjc)
                     {   fbody = new PeelStatement(fbody);
-                        fbody = new ObjcExceptionBridge(0, fbody, THROWd);
+                        fbody = new ObjcExceptionBridge(Loc(), fbody, THROWd);
                         fbody = fbody->semantic(sc2);
                     }
                 }

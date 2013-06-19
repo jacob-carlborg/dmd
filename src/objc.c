@@ -140,7 +140,7 @@ static StringTable *initStringTable(StringTable *stringtable)
 {
     delete stringtable;
     stringtable = new StringTable();
-    stringtable->init();
+    stringtable->_init();
 
     return stringtable;
 }
@@ -637,7 +637,7 @@ int ObjcSelector::incnum = 0;
 
 void ObjcSelector::init ()
 {
-    stringtable.init();
+    stringtable._init();
 }
 
 ObjcSelector::ObjcSelector(const char *sv, size_t len, size_t pcount)
@@ -814,12 +814,12 @@ elem *ObjcDotClassExp::toElem(IRState *irs)
     if (!noop)
     {
         TypeFunction *tf = new TypeFunction(NULL, type, 0, LINKobjc);
-        FuncDeclaration *fd = new FuncDeclaration(0, 0, NULL, STCstatic, tf);
+        FuncDeclaration *fd = new FuncDeclaration(Loc(), Loc(), NULL, STCstatic, tf);
         fd->protection = PROTpublic;
         fd->linkage = LINKobjc;
         fd->objcSelector = ObjcSelector::lookup("class", 5, 0);
 
-        Expression *ef = new VarExp(0, fd);
+        Expression *ef = new VarExp(Loc(), fd);
         Expression *ec = new CallExp(loc, ef);
         e = ec->toElem(irs);
     }
