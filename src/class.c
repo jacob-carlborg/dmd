@@ -775,6 +775,8 @@ void ClassDeclaration::semantic(Scope *sc)
 
     //members->print();
 
+    inv = buildInv(sc);
+
 #if DMD_OBJC
 	if (objc && !objcextern && !objcmeta)
 	{	// Look for static initializers to create initializing function if needed
@@ -837,7 +839,7 @@ void ClassDeclaration::semantic(Scope *sc)
         // invariant for Objective-C class is handled by adding a _dobjc_invariant
         // dynamic method calling the invariant function and then the parent's
         // _dobjc_invariant if applicable.
-        if (inv)
+        if (invs.dim > 0)
         {
             Loc iloc = inv->loc;
             TypeFunction *invtf = new TypeFunction(new Parameters, Type::tvoid, 0, LINKobjc);
@@ -879,8 +881,6 @@ void ClassDeclaration::semantic(Scope *sc)
                 ::error(v->loc, "field %s must be initialized in constructor", v->toChars());
         }
     }
-
-    inv = buildInv(sc);
 
     // Can be in base class
     aggNew    =    (NewDeclaration *)search(Loc(), Id::classNew);
