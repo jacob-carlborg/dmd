@@ -374,7 +374,7 @@ void FuncDeclaration::semantic(Scope *sc)
 #endif
 #if DMD_OBJC
     // Because static functions are virtual in Objective-C objects
-    if (isAbstract() && isStatic())
+    if (isAbstract() && isStatic() && linkage == LINKobjc)
         error("static functions cannot be abstract");
 #endif
 
