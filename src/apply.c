@@ -102,9 +102,15 @@ int AssertExp::apply(apply_fp_t fp, void *param)
 int CallExp::apply(apply_fp_t fp, void *param)
 {
     //printf("CallExp::apply(apply_fp_t fp, void *param): %s\n", toChars());
+#if DMD_OBJC
+    return e1->apply(fp, param) |
+           condApply(arguments, fp, param) |
+           (*fp)(this, param);
+#else
     return e1->apply(fp, param) ||
            condApply(arguments, fp, param) ||
            (*fp)(this, param);
+#endif
 }
 
 

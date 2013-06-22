@@ -85,9 +85,9 @@ int lambdaCanThrow(Expression *e, void *param)
 #if DMD_OBJC
             if (t->ty == Tfunction && !((TypeFunction *)t)->isnothrow)
                 pct->can |= (((TypeFunction *)t)->linkage == LINKobjc ? BEthrowobjc : BEthrow);
-            else if (t->ty == Tdelegate && !((TypeFunction *)((TypeDelegate *)t)->next)->isnothrow)
+            if (t->ty == Tdelegate && !((TypeFunction *)((TypeDelegate *)t)->next)->isnothrow)
                 pct->can |= (((TypeFunction *)((TypeDelegate *)t)->next)->linkage == LINKobjc ? BEthrowobjc : BEthrow);
-            else if (t->ty == Tobjcselector && !((TypeFunction *)((TypeObjcSelector *)t)->next)->isnothrow)
+            if (t->ty == Tobjcselector && !((TypeFunction *)((TypeObjcSelector *)t)->next)->isnothrow)
                 pct->can |= (((TypeFunction *)((TypeObjcSelector *)t)->next)->linkage == LINKobjc ? BEthrowobjc : BEthrow);
 #else
             if (t->ty == Tfunction && ((TypeFunction *)t)->isnothrow)
