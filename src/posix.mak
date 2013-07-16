@@ -51,9 +51,9 @@ ifneq (x,x$(MODEL))
 endif
 
 ifeq (OSX,$(OS))
-    export MACOSX_DEPLOYMENT_TARGET=10.3
+    export MACOSX_DEPLOYMENT_TARGET=10.5
 endif
-LDFLAGS=-lm -lstdc++ -lpthread
+LDFLAGS=-L/Users/jacob/development/d/dstep/lib -L/Users/jacob/development/d/dstep -L/Users/jacob/.dvm/compilers/dmd-2.063.2/lib -lm -lstdc++ -lpthread -lclang -ltango -lphobos2 -ldstep -Xlinker -rpath -Xlinker /Users/jacob/development/d/dstep
 
 HOST_CC=g++
 CC=$(HOST_CC) $(MODEL_FLAG)

@@ -30,6 +30,8 @@
 #include "hdrgen.h"
 #include "utf.h"
 
+#include "dstep.h"
+#include "import.h"
 
 /********************************* AttribDeclaration ****************************/
 
@@ -1159,6 +1161,62 @@ void PragmaDeclaration::semantic(Scope *sc)
                 }
             }
 #endif
+        }
+    }
+    else if (ident == Id::include)
+    {
+        if (!args || args->dim != 1)
+            error("string expected for library name");
+        else
+        {
+            Expression* e = (*args)[0];
+
+            sc = sc->startCTFE();
+            e = e->semantic(sc);
+            e = resolveProperties(sc, e);
+            sc = sc->endCTFE();
+
+            e = e->ctfeInterpret();
+            (*args)[0] = e;
+            if (e->op == TOKerror)
+                goto Lnodecl;
+            StringExp* se = e->toString();
+            if (!se)
+                error("string expected for library name, not '%s'", e->toChars());
+            else 
+            {
+                char* path = (char*) mem.malloc(se->len + 1);
+                memcpy(path, se->string, se->len);
+                path[se->len] = 0;
+
+                if (global.params.verbose)
+                    printf("library   %s\n", path);
+
+                TranslationArgs args;
+                args.file = path;
+                args.outputFile = FileName::forceExt(path, global.mars_ext);
+                args.args = NULL;
+                args.argsLength = 0;
+                args.language = Language_C;
+
+                Translator translator;
+
+                rt_init(NULL);
+                    int result = dstep_translate(args, &translator);
+                    dstep_disposeTranslator(translator);
+                rt_term(NULL);
+
+                const char* name = FileName::name(args.outputFile);
+                name = FileName::removeExt(name);
+                Identifier* id = Lexer::idPool(name);
+
+                Import* import = new Import(loc, NULL, id, NULL, false);
+                import->importAll(sc);
+
+                FileName::free(name);
+                FileName::free(args.outputFile);
+                mem.free(path);
+            }
         }
     }
     else if (global.params.ignoreUnsupportedPragmas)
