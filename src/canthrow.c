@@ -49,7 +49,7 @@ int Expression::canThrow(bool mustNotThrow)
 {
     //printf("Expression::canThrow(%d) %s\n", mustNotThrow, toChars());
     CanThrow ct;
-    ct.can = FALSE;
+    ct.can = false;
     ct.mustnot = mustNotThrow;
     apply(&lambdaCanThrow, &ct);
     return ct.can;
@@ -61,14 +61,15 @@ int lambdaCanThrow(Expression *e, void *param)
     switch (e->op)
     {
         case TOKdeclaration:
-        {   DeclarationExp *de = (DeclarationExp *)e;
+        {
+            DeclarationExp *de = (DeclarationExp *)e;
             pct->can = Dsymbol_canThrow(de->declaration, pct->mustnot);
             break;
         }
 
         case TOKcall:
-        {   CallExp *ce = (CallExp *)e;
-
+        {
+            CallExp *ce = (CallExp *)e;
             if (global.errors && !ce->e1->type)
                 break;                       // error recovery
 
@@ -98,14 +99,15 @@ int lambdaCanThrow(Expression *e, void *param)
 #endif
                     e->error("'%s' is not nothrow", ce->f ? ce->f->toPrettyChars() : ce->e1->toChars());
 #if !DMD_OBJC
-                pct->can = TRUE;
+                pct->can = true;
 #endif
             }
             break;
         }
 
         case TOKnew:
-        {   NewExp *ne = (NewExp *)e;
+        {
+            NewExp *ne = (NewExp *)e;
             if (ne->member)
             {
                 // See if constructor call can throw
@@ -120,11 +122,38 @@ int lambdaCanThrow(Expression *e, void *param)
                     else
                         pct->can |= BEthrow;
 #else
-                    pct->can = TRUE;
+                    pct->can = true;
 #endif
                 }
             }
             // regard storage allocation failures as not recoverable
+            break;
+        }
+
+        case TOKassign:
+        case TOKconstruct:
+        {
+            /* Element-wise assignment could invoke postblits.
+             */
+            AssignExp *ae = (AssignExp *)e;
+            if (ae->e1->op != TOKslice)
+                break;
+
+            Type *tv = ae->e1->type->toBasetype()->nextOf()->baseElemOf();
+            if (tv->ty != Tstruct)
+                break;
+            StructDeclaration *sd = ((TypeStruct *)tv)->sym;
+            if (!sd->postblit || sd->postblit->type->ty != Tfunction)
+                break;
+
+            if (((TypeFunction *)sd->postblit->type)->isnothrow)
+                ;
+            else
+            {
+                if (pct->mustnot)
+                    e->error("'%s' is not nothrow", sd->postblit->toPrettyChars());
+                pct->can = true;
+            }
             break;
         }
 
@@ -169,7 +198,7 @@ int Dsymbol_canThrow(Dsymbol *s, bool mustNotThrow)
                     return result;
 #else
                 if (Dsymbol_canThrow(s, mustNotThrow))
-                    return 1;
+                    return true;
 #endif
             }
         }
@@ -202,7 +231,7 @@ int Dsymbol_canThrow(Dsymbol *s, bool mustNotThrow)
                 }
 #else
                 if (ie && ie->exp->canThrow(mustNotThrow))
-                    return 1;
+                    return true;
 #endif
             }
             if (vd->edtor && !vd->noscope)
@@ -227,7 +256,7 @@ int Dsymbol_canThrow(Dsymbol *s, bool mustNotThrow)
                     return result;
 #else
                 if (Dsymbol_canThrow(sm, mustNotThrow))
-                    return 1;
+                    return true;
 #endif
             }
         }
@@ -246,7 +275,7 @@ int Dsymbol_canThrow(Dsymbol *s, bool mustNotThrow)
                         return result;
 #else
                     if (Dsymbol_canThrow(se->s, mustNotThrow))
-                        return 1;
+                        return true;
 #endif
                 }
             }
@@ -255,6 +284,6 @@ int Dsymbol_canThrow(Dsymbol *s, bool mustNotThrow)
 #if DMD_OBJC
     return result;
 #else
-    return 0;
+    return false;
 #endif
 }
