@@ -1337,8 +1337,8 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
 
         if (type->ty != Tclass) // not already converted to a string literal
         {
-            if (((TypeClass *)type)->sym->objc &&
-                ((TypeClass *)type)->sym->objctakestringliteral)
+            if (((TypeClass *)tb)->sym->objc &&
+                ((TypeClass *)tb)->sym->objctakestringliteral)
             {
                 if (committed)
                 {   error("cannot convert string literal to NSString because of explicit character type");
