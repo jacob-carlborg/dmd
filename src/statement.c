@@ -5724,6 +5724,27 @@ Statement *ObjcExceptionBridge::semantic(Scope *sc)
     }
     else if (mode == THROWd)
     {
+        if (global.params.is64bit)
+        {
+            // Rewrite as this:
+            //
+            // _dobjc_setExceptionHandler();
+            // body;
+            static Parameters* params = new Parameters();
+
+            Statements* newBody = new Statements();
+            FuncDeclaration* setExceptionHandler = FuncDeclaration::genCfunc(params, Type::tvoid, "_dobjc_setExceptionHandler");
+            CallExp* callExp = new CallExp(loc, new VarExp(Loc(), setExceptionHandler));
+            ExpStatement* expState = new ExpStatement(loc, callExp);
+
+            newBody->push(expState);
+            newBody->push(new PeelStatement(body));
+
+            wrapped = new CompoundStatement(loc, newBody);
+            wrapped = wrapped->semantic(sc);
+            return this;
+        }
+
         // Rewrite as this (Apple Objective-C Legacy Runtime ABI):
         //
         // size_t[__edatalen] __dobjc_ex_data;
