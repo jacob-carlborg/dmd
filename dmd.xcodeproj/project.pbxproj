@@ -160,6 +160,7 @@
 		7A8F5AAF173E8704002091B3 /* type.c in Sources */ = {isa = PBXBuildFile; fileRef = 7A8F5A75173E8704002091B3 /* type.c */; };
 		7A8F5AB0173E8704002091B3 /* util2.c in Sources */ = {isa = PBXBuildFile; fileRef = 7A8F5A76173E8704002091B3 /* util2.c */; };
 		7A8F5AB1173E8704002091B3 /* var.c in Sources */ = {isa = PBXBuildFile; fileRef = 7A8F5A77173E8704002091B3 /* var.c */; };
+		7A914B4A1895775A0049C248 /* set.h in Sources */ = {isa = PBXBuildFile; fileRef = 7A914B491895775A0049C248 /* set.h */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -407,6 +408,7 @@
 		7A8F5ACF173E870F002091B3 /* ty.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; fileEncoding = 4; path = ty.h; sourceTree = "<group>"; };
 		7A8F5AD0173E870F002091B3 /* type.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; fileEncoding = 4; path = type.h; sourceTree = "<group>"; };
 		7A8F5AD1173E870F002091B3 /* xmm.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; fileEncoding = 4; path = xmm.h; sourceTree = "<group>"; };
+		7A914B491895775A0049C248 /* set.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; fileEncoding = 4; path = set.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -574,6 +576,7 @@
 				7A8F59A2173E86D7002091B3 /* port.h */,
 				7A8F59A3173E86D7002091B3 /* rmem.h */,
 				7A8F59A4173E86D7002091B3 /* root.h */,
+				7A914B491895775A0049C248 /* set.h */,
 				7A8F59A5173E86D7002091B3 /* speller.h */,
 				7A8F59A6173E86D7002091B3 /* stringtable.h */,
 				7A8F59A7173E86D7002091B3 /* thread.h */,
@@ -893,6 +896,7 @@
 				7A8F5A9B173E8704002091B3 /* go.c in Sources */,
 				7A8F5A9C173E8704002091B3 /* gother.c in Sources */,
 				7A8F5A9D173E8704002091B3 /* machobj.c in Sources */,
+				7A914B4A1895775A0049C248 /* set.h in Sources */,
 				7A8F5A9E173E8704002091B3 /* md5.c in Sources */,
 				7A8F5A9F173E8704002091B3 /* mscoffobj.c in Sources */,
 				7A8F5AA0173E8704002091B3 /* newman.c in Sources */,
