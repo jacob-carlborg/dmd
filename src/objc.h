@@ -53,6 +53,7 @@ enum ObjcSegment
     SEGclassname,
     SEGselrefs,
     SEGobjc_const,
+    SEGobjc_ivar,
     SEG_MAX
 };
 
@@ -84,6 +85,7 @@ struct ObjcSymbols
     static StringTable *smethvarreftable;
     static StringTable *smethvartypetable;
     static StringTable *sprototable;
+    static StringTable *sivarOffsetTable;
 
     static Symbol *getGlobal(const char* name);
     static Symbol *getGlobal(const char* name, type* t);
@@ -117,6 +119,7 @@ struct ObjcSymbols
     static Symbol *getMethVarType(Dsymbol **types, size_t dim);
     static Symbol *getMethVarType(Dsymbol *type);
     static Symbol *getMethVarType(FuncDeclaration *func);
+    static Symbol *getIVarOffset(ClassDeclaration *cdecl, VarDeclaration *ivar);
 
     static Symbol *getMessageReference(ObjcSelector* selector, Type* returnType, bool hasHiddenArg);
 
