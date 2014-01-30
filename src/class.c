@@ -1363,6 +1363,11 @@ int ClassDeclaration::isObjCinterface()
 {
     return objc;
 }
+
+bool ClassDeclaration::isObjCRootClass()
+{
+    return isObjCinterface() && !metaclass && !baseClass;
+}
 #endif
 
 

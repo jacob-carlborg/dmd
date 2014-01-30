@@ -111,6 +111,9 @@ struct Param
     char isFreeBSD;     // generate code for FreeBSD
     char isOpenBSD;     // generate code for OpenBSD
     char isSolaris;     // generate code for Solaris
+#if DMD_OBJC
+    char isObjcNonFragileAbi; // When interfacing with Objective-C the non fragile ABI is used
+#endif
     char scheduler;     // which scheduler to use
     char useDeprecated; // 0: don't allow use of deprecated features
                         // 1: silently allow use of deprecated features

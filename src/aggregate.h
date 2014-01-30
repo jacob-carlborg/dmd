@@ -321,6 +321,7 @@ public:
     virtual int isCPPinterface();
 #if DMD_OBJC
     virtual int isObjCinterface();
+    bool isObjCRootClass();
 #endif
     bool isAbstract();
     virtual int vtblOffset();
