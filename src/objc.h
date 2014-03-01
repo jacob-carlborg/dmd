@@ -55,6 +55,7 @@ enum ObjcSegment
     SEGselrefs,
     SEGobjc_const,
     SEGobjc_ivar,
+    SEGobjc_protolist,
     SEG_MAX
 };
 
@@ -124,6 +125,7 @@ struct ObjcSymbols
     static Symbol *getMessageReference(ObjcSelector* selector, Type* returnType, bool hasHiddenArg);
 
     static Symbol *getProtocolSymbol(ClassDeclaration *interface);
+    static Symbol *getProtocolName(ClassDeclaration* interface);
     static Symbol *getStringLiteral(const void *str, size_t len, size_t sz);
 
     static Symbol *getEmptyCache();
@@ -263,6 +265,7 @@ struct ObjcProtocolDeclaration
 
     Symbol *getMethodList(int wantsClassMethods);
     Symbol *getProtocolList();
+    Symbol *getMethodTypes();
 };
 
 struct TypeObjcSelector : TypeNext
