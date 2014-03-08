@@ -88,6 +88,8 @@ struct ObjcSymbols
     static StringTable *smethvartypetable;
     static StringTable *sprototable;
     static StringTable *sivarOffsetTable;
+    static StringTable *spropertyNameTable;
+    static StringTable *spropertyTypeStringTable;
 
     static Symbol *getGlobal(const char* name);
     static Symbol *getGlobal(const char* name, type* t);
@@ -130,6 +132,10 @@ struct ObjcSymbols
 
     static Symbol *getEmptyCache();
     static Symbol *getEmptyVTable();
+
+    static Symbol* getPropertyName(const char* str, size_t len);
+    static Symbol* getPropertyName(Identifier* ident);
+    static Symbol* getPropertyTypeString(FuncDeclaration* property);
 };
 
 // Helper class to efficiently build a selector from identifiers and colon tokens
@@ -239,6 +245,7 @@ struct ObjcClassDeclaration
     int ismeta;
     Symbol *symbol;
     Symbol *sprotocols;
+    Symbol *sproperties;
 
     static ClassDeclaration *getObjcMetaClass(ClassDeclaration *cdecl);
 
@@ -250,7 +257,10 @@ struct ObjcClassDeclaration
     Symbol *getIVarList();
     Symbol *getMethodList();
     Symbol *getProtocolList();
+    Symbol *getPropertyList();
+    Dsymbols *getProperties();
     Symbol *getClassRo();
+    Symbol *getClassExtension();
     uint32_t generateFlags ();
 };
 
