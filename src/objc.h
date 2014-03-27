@@ -159,7 +159,7 @@ namespace NonFragileAbi
         Symbol *getClassNameRo(const char *str, size_t len);
         Symbol *getClassNameRo(Identifier* ident);
 
-        Symbol *getIVarOffset(ClassDeclaration *cdecl, VarDeclaration *ivar);
+        Symbol *getIVarOffset(ClassDeclaration *cdecl, VarDeclaration *ivar, bool outputSymbol);
 
         Symbol *getEmptyCache();
         Symbol *getEmptyVTable();
@@ -293,7 +293,7 @@ namespace FragileAbi
 {
     struct ObjcClassDeclaration : ::ObjcClassDeclaration
     {
-        ObjcClassDeclaration(ClassDeclaration *cdecl, int ismeta) :
+        ObjcClassDeclaration(ClassDeclaration *cdecl, int ismeta = 0) :
             ::ObjcClassDeclaration(cdecl, ismeta) { }
 
         void toObjFile(int multiobj);
@@ -314,15 +314,17 @@ namespace NonFragileAbi
             nonFragileFlags_root = 0x00002
         };
 
-        ObjcClassDeclaration(ClassDeclaration *cdecl, int ismeta) :
+        ObjcClassDeclaration(ClassDeclaration *cdecl, int ismeta = 0) :
             ::ObjcClassDeclaration(cdecl, ismeta) { }
 
         void toObjFile(int multiobj);
         void toDt(dt_t **pdt);
 
         Symbol *getIVarList();
+        Symbol *getIVarOffset(VarDeclaration* ivar);
         Symbol *getClassRo();
         uint32_t generateFlags();
+        unsigned getInstanceStart();
     };
 }
 
