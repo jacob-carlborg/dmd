@@ -792,8 +792,9 @@ enum ObjcThrowMode
     THROWd,
 };
 
-struct ObjcExceptionBridge : Statement
+class ObjcExceptionBridge : public Statement
 {
+public:
     Statement *body;
     Statement *wrapped;
     ObjcThrowMode mode;
