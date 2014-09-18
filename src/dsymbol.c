@@ -1096,7 +1096,7 @@ void ScopeDsymbol::multiplyDefined(Loc loc, Dsymbol *s1, Dsymbol *s2)
 #endif
 #if DMD_OBJC
     bool isObjcMetaclass = s1->isClassDeclaration() && s2->isClassDeclaration() &&
-    ((ClassDeclaration *)s1)->objcmeta && ((ClassDeclaration *)s2)->objcmeta;
+    ((ClassDeclaration *)s1)->objc.meta && ((ClassDeclaration *)s2)->objc.meta;
 #else
     bool isObjcMetaclass = false;
 #endif
