@@ -668,9 +668,6 @@ public:
     Statement *mergeFrequire(Statement *);
     Statement *mergeFensure(Statement *, Identifier *oid);
     Parameters *getParameters(int *pvarargs);
-#if DMD_OBJC
-    bool isObjcProperty();
-#endif
 
     static FuncDeclaration *genCfunc(Type *treturn, const char *name, Type *param);
     static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, const char *name);
