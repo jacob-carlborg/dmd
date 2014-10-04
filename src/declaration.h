@@ -669,7 +669,6 @@ public:
     Statement *mergeFensure(Statement *, Identifier *oid);
     Parameters *getParameters(int *pvarargs);
 #if DMD_OBJC
-    void createObjCSelector();
     bool isObjcProperty();
 #endif
 
