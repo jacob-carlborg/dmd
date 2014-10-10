@@ -1513,13 +1513,7 @@ elem *toElem(Expression *e, IRState *irs)
 
                 if (ne->member)
                 {
-#if DMD_OBJC
-                    // Call Objective-C constructor (not a direct call)
-                    bool isDirectCall = !cd->objc.objc;
-#else
-                    // Call constructor
-                    bool isDirectCall = true;
-#endif
+                    bool isDirectCall = objc_toElem_visit_NewExp_Tclass_isDirectCall(cd->objc.objc);
                     ez = callfunc(ne->loc, irs, isDirectCall, ne->type, ez, ectype, ne->member, ne->member->type, NULL, ne->arguments);
                 }
 
