@@ -3529,11 +3529,7 @@ elem *toElem(Expression *e, IRState *irs)
                     }
                 }
             }
-#if DMD_OBJC
             ec = callfunc(ce->loc, irs, directcall, ce->type, ec, ectype, fd, t1, ehidden, ce->arguments, esel);
-#else
-            ec = callfunc(ce->loc, irs, directcall, ce->type, ec, ectype, fd, t1, ehidden, ce->arguments);
-#endif
             el_setLoc(ec, ce->loc);
             if (eeq)
                 ec = el_combine(eeq, ec);
