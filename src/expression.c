@@ -8593,11 +8593,6 @@ Lagain:
         const char *p;
         Dsymbol *s;
         f = NULL;
-#if DMD_OBJC
-        bool isObjcSelector = t1->ty == Tobjcselector;
-#else
-        bool isObjcSelector = false;
-#endif
         if (e1->op == TOKfunction)
         {
             // function literal that direct called is always inferred.
@@ -8613,14 +8608,9 @@ Lagain:
             tf = (TypeFunction *)(td->next);
             p = "delegate";
         }
-        else if (isObjcSelector)
+        else if (t1->ty == Tobjcselector)
         {
-#if DMD_OBJC
-            TypeObjcSelector *td = (TypeObjcSelector *)t1;
-            assert(td->next->ty == Tfunction);
-            tf = (TypeFunction *)(td->next);
-            p = "Objective-C selector";
-#endif
+            objc_CallExp_semantic_noFunction_selector(t1, tf, p);
         }
         else if (t1->ty == Tpointer && ((TypePointer *)t1)->next->ty == Tfunction)
         {
