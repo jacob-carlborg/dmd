@@ -191,15 +191,6 @@ public:
     }
     void visit(AsmStatement *s) {  }
     void visit(ImportStatement *s) {  }
-#if DMD_OBJC
-    void visit(ObjcExceptionBridge *s)
-    {
-        if (s->body)
-            visitStmt(s->body);
-        if (s->wrapped)
-            visitStmt(s->wrapped);
-    }
-#endif
 };
 
 /* Tweak all return statements and dtor call for nrvo_var, for correct NRVO.
@@ -1826,11 +1817,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 if (flags & FUNCFLAGnothrowInprocess)
                 {
                     if (type == f) f = (TypeFunction *)f->copy();
-#if DMD_OBJC
-                    f->isnothrow = !(blockexit & BEthrowany);
-#else
                     f->isnothrow = !(blockexit & BEthrow);
-#endif
                 }
             }
 
@@ -2237,32 +2224,6 @@ void FuncDeclaration::semantic3(Scope *sc)
             }
             // from this point on all possible 'throwers' are checked
             flags &= ~FUNCFLAGnothrowInprocess;
-
-#if DMD_OBJC
-            {
-                // Convert throws to Objective-C EH if has Objective-C linkage
-                // otherwise convert throws to D EH (if necessary)
-                ++global.gag; // suppress warnings about unreachable statements
-                int blockexit = sbody->blockExit(this, false);
-                --global.gag;
-                if (linkage == LINKobjc)
-                {   // Objective-C linkage must throw using Objective-C EH.
-                    if ((blockexit & BEthrow))
-                    {   sbody = new PeelStatement(sbody);
-                        sbody = new ObjcExceptionBridge(Loc(), sbody, THROWobjc);
-                        sbody = sbody->semantic(sc2);
-                    }
-                }
-                else
-                {   // other functions must throw using D EH.
-                    if (blockexit & BEthrowobjc)
-                    {   sbody = new PeelStatement(sbody);
-                        sbody = new ObjcExceptionBridge(Loc(), sbody, THROWd);
-                        sbody = sbody->semantic(sc2);
-                    }
-                }
-            }
-#endif
 
             if (isSynchronized())
             {
