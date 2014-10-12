@@ -4490,9 +4490,7 @@ NewExp::NewExp(Loc loc, Expression *thisexp, Expressions *newargs,
     this->arguments = arguments;
     member = NULL;
     allocator = NULL;
-#if DMD_OBJC
     objcalloc = NULL;
-#endif
     onstack = 0;
 }
 
