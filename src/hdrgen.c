@@ -1022,12 +1022,10 @@ public:
         buf->writestring("typeof(null)");
     }
 
-#if DMD_OBJC
     void visit(TypeObjcSelector *t)
     {
         visitFuncIdentWithPostfix((TypeFunction *)t->next, "__selector");
     }
-#endif
 
     ////////////////////////////////////////////////////////////////////////////
 
