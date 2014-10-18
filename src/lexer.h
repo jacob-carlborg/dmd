@@ -184,13 +184,11 @@ enum TOK
 
         TOKinterval,
 
-//#if DMD_OBJC
         TOKobjcclsref, // Objective-C class reference
         TOKobjc_dotclass,
         TOKobjc_dotprotocolof,
         
         TOKobjcselector, // selector keyword
-//#endif
 
         TOKMAX
 };
