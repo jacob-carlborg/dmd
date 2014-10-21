@@ -2525,12 +2525,9 @@ Type *TypeNext::makeImmutable()
         return ito;
     }
     TypeNext *t = (TypeNext *)Type::makeImmutable();
-#if DMD_OBJC
-    bool isObjcSelector = ty == Tobjcselector || (next && next->ty == Tobjcselector);
-#else
-    bool isObjcSelector = false;
-#endif
-    if (ty != Tfunction && next->ty != Tfunction && !isObjcSelector && !next->isImmutable())
+    if (ty != Tfunction && next->ty != Tfunction &&
+        ty != Tobjcselector && next->ty != Tobjcselector &&
+        !next->isImmutable())
     {
         t->next = next->immutableOf();
     }
@@ -2546,12 +2543,9 @@ Type *TypeNext::makeShared()
         return sto;
     }
     TypeNext *t = (TypeNext *)Type::makeShared();
-#if DMD_OBJC
-    bool isObjcSelector = ty == Tobjcselector || (next && next->ty == Tobjcselector);
-#else
-    bool isObjcSelector = false;
-#endif
-    if (ty != Tfunction && next->ty != Tfunction && !isObjcSelector && !next->isImmutable())
+    if (ty != Tfunction && next->ty != Tfunction &&
+        ty != Tobjcselector && next->ty != Tobjcselector &&
+        !next->isImmutable())
     {
         if (next->isWild())
         {
@@ -2581,12 +2575,9 @@ Type *TypeNext::makeSharedConst()
         return scto;
     }
     TypeNext *t = (TypeNext *)Type::makeSharedConst();
-#if DMD_OBJC
-    bool isObjcSelector = ty == Tobjcselector || (next && next->ty == Tobjcselector);
-#else
-    bool isObjcSelector = false;
-#endif
-    if (ty != Tfunction && next->ty != Tfunction && !isObjcSelector && !next->isImmutable())
+    if (ty != Tfunction && next->ty != Tfunction &&
+        ty != Tobjcselector && next->ty != Tobjcselector &&
+        !next->isImmutable())
     {
         if (next->isWild())
             t->next = next->sharedWildConstOf();
@@ -2606,12 +2597,9 @@ Type *TypeNext::makeWild()
         return wto;
     }
     TypeNext *t = (TypeNext *)Type::makeWild();
-#if DMD_OBJC
-    bool isObjcSelector = ty == Tobjcselector || (next && next->ty == Tobjcselector);
-#else
-    bool isObjcSelector = false;
-#endif
-    if (ty != Tfunction && next->ty != Tfunction && !isObjcSelector && !next->isImmutable())
+    if (ty != Tfunction && next->ty != Tfunction &&
+        ty != Tobjcselector && next->ty != Tobjcselector &&
+        !next->isImmutable())
     {
         if (next->isShared())
         {
@@ -2662,12 +2650,9 @@ Type *TypeNext::makeSharedWild()
         return swto;
     }
     TypeNext *t = (TypeNext *)Type::makeSharedWild();
-#if DMD_OBJC
-    bool isObjcSelector = ty == Tobjcselector || (next && next->ty == Tobjcselector);
-#else
-    bool isObjcSelector = false;
-#endif
-    if (ty != Tfunction && next->ty != Tfunction && !isObjcSelector && !next->isImmutable())
+    if (ty != Tfunction && next->ty != Tfunction &&
+        ty != Tobjcselector && next->ty != Tobjcselector &&
+        !next->isImmutable())
     {
         if (next->isConst())
             t->next = next->sharedWildConstOf();
@@ -8807,15 +8792,10 @@ MATCH TypeNull::implicitConvTo(Type *to)
     //if (type->ty == Tpointer && type->nextOf()->ty == Tvoid)
     {
         Type *tb = to->toBasetype();
-#if DMD_OBJC
-        bool isObjcSelector = tb->ty == Tobjcselector;
-#else
-        bool isObjcSelector = false;
-#endif
         if (tb->ty == Tnull ||
             tb->ty == Tpointer || tb->ty == Tarray ||
             tb->ty == Taarray  || tb->ty == Tclass ||
-            isObjcSelector || tb->ty == Tdelegate)
+            tb->ty == Tobjcselector || tb->ty == Tdelegate)
             return MATCHconst;
     }
 
