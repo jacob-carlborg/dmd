@@ -4552,9 +4552,7 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
         case TOKmodulestring:
         case TOKfuncstring:
         case TOKprettyfunc:
-//#if DMD_OBJC
         case TOKobjcselector:
-//#endif
         Lexp:
         {
             Expression *exp = parseExpression();
@@ -5860,9 +5858,7 @@ int Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok)
 
             case TOKdelegate:
             case TOKfunction:
-//#if DMD_OBJC
             case TOKobjcselector:
-//#endif
                 t = peek(t);
                 if (!isParameters(&t))
                     return false;
@@ -7226,9 +7222,7 @@ Expression *Parser::parseUnaryExp()
                     case TOKimaginary32: case TOKimaginary64: case TOKimaginary80:
                     case TOKcomplex32: case TOKcomplex64: case TOKcomplex80:
                     case TOKvoid:
-//#if DMD_OBJC
                     case TOKobjcselector:
-//#endif
                     {   // (type) una_exp
                         Type *t;
 
