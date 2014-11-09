@@ -808,7 +808,12 @@ static unsigned setMangleOverride(Dsymbol *s, char *sym)
         return 1;
     }
     else
+    {
+        if (objc_setMangleOverride_ClassDeclaration(s, sym) == CFreturn)
+            return 1;
+
         return 0;
+    }
 }
 
 void PragmaDeclaration::semantic(Scope *sc)
@@ -927,10 +932,6 @@ void PragmaDeclaration::semantic(Scope *sc)
     else if (ident == Id::objc_isselector)
     {
         objc_PragmaDeclaration_semantic_objcSelector(this, sc);
-    }
-    else if (ident == Id::objc_nameoverride)
-    {
-        objc_PragmaDeclaration_semantic_objcNameOverride(this, sc);
     }
 
     else if (ident == Id::mangle)
