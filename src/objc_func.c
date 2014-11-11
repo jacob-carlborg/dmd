@@ -10,6 +10,7 @@
  */
 
 #include "aggregate.h"
+#include "attrib.h"
 #include "declaration.h"
 #include "id.h"
 #include "objc.h"
@@ -44,6 +45,64 @@ bool Ojbc_FuncDeclaration::isProperty()
 }
 
 // MARK: semantic
+
+void objc_FuncDeclaration_semantic_setSelector(FuncDeclaration *self, Scope *sc)
+{
+    if (!self->userAttribDecl)
+        return;
+
+    Expressions *udas = self->userAttribDecl->getAttributes();
+
+    for (size_t i = 0; i < udas->dim; i++)
+    {
+        Expression *uda = (*udas)[i];
+        uda = uda->semantic(sc);
+
+        if (uda->type->ty != Ttuple)
+            return;
+
+        Expressions *exps = ((TupleExp *)uda)->exps;
+
+        for (size_t j = 0; j < exps->dim; j++)
+        {
+            Expression *e = (*exps)[j];
+            assert(e->type);
+
+            if (e->type->ty == Tstruct)
+            {
+                StructLiteralExp *literal = (StructLiteralExp *)e;
+                assert(literal->sd);
+
+                if (strcmp(Id::udaSelector->string, literal->sd->toPrettyChars()) == 0)
+                {
+                    assert(literal->elements->dim == 1);
+                    StringExp *se = (*literal->elements)[0]->toStringExp();
+                    assert(se);
+
+                    if (self->objc.selector)
+                        self->error("can only have one Objective-C selector per method");
+
+                    else
+                        self->objc.selector = ObjcSelector::lookup((const char *)se->toUTF8(sc)->string);
+                }
+            }
+        }
+    }
+}
+
+void objc_FuncDeclaration_semantic_validateSelector (FuncDeclaration *self)
+{
+    if (!self->objc.selector)
+        return;
+
+    TypeFunction *tf = (TypeFunction *)self->type;
+
+    if (self->objc.selector->paramCount != tf->parameters->dim)
+        self->error("number of colons in Objective-C selector must match number of parameters");
+
+    if (self->parent && self->parent->isTemplateInstance())
+        self->error("template cannot have an Objective-C selector attached");
+}
 
 void objc_FuncDeclaration_semantic_checkAbstractStatic(FuncDeclaration *self)
 {

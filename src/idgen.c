@@ -371,6 +371,9 @@ Msgtable msgtable[] =
     { "basic_ostream" },
     { "basic_iostream" },
     { "char_traits" },
+
+    // Compiler recognized UDA's
+    { "udaSelector", "core.attribute.selector" },
 };
 
 

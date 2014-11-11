@@ -426,6 +426,9 @@ void FuncDeclaration::semantic(Scope *sc)
     protection = sc->protection;
     userAttribDecl = sc->userAttribDecl;
 
+    objc_FuncDeclaration_semantic_setSelector(this, sc);
+    objc_FuncDeclaration_semantic_validateSelector(this);
+
     if (!originalType)
         originalType = type->syntaxCopy();
     if (!type->deco)
