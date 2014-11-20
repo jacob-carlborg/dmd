@@ -523,7 +523,7 @@ Expression * objc_AddrExp_semantic_TOKvar_selector(AddrExp *self, Scope *sc, Var
 void objc_FuncDeclaration_semantic_setSelector(FuncDeclaration *self, Scope *sc);
 void objc_FuncDeclaration_semantic_validateSelector(FuncDeclaration *self);
 void objc_FuncDeclaration_semantic_checkAbstractStatic(FuncDeclaration *self);
-void objc_FuncDeclaration_semantic_parentForStaticMethod(FuncDeclaration *self, Dsymbol *&parent, ClassDeclaration *&cd);
+void objc_FuncDeclaration_semantic_parentForStaticMethod(FuncDeclaration *self, ClassDeclaration *&cd);
 void objc_FuncDeclaration_semantic_checkInheritedSelector(FuncDeclaration *self, ClassDeclaration *cd);
 void objc_FuncDeclaration_semantic_addClassMethodList(FuncDeclaration *self, ClassDeclaration *cd);
 void objc_FuncDeclaration_semantic_checkLinkage(FuncDeclaration *self);

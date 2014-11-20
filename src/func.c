@@ -426,9 +426,6 @@ void FuncDeclaration::semantic(Scope *sc)
     protection = sc->protection;
     userAttribDecl = sc->userAttribDecl;
 
-    objc_FuncDeclaration_semantic_setSelector(this, sc);
-    objc_FuncDeclaration_semantic_validateSelector(this);
-
     if (!originalType)
         originalType = type->syntaxCopy();
     if (!type->deco)
@@ -720,8 +717,6 @@ void FuncDeclaration::semantic(Scope *sc)
             error("return type inference is not supported if may override base class function");
         }
 
-        objc_FuncDeclaration_semantic_parentForStaticMethod(this, parent, cd);
-
         /* Find index of existing function in base class's vtbl[] to override
          * (the index will be the same as in cd's current vtbl[])
          */
@@ -972,10 +967,6 @@ void FuncDeclaration::semantic(Scope *sc)
 
     L2: ;
 
-        objc_FuncDeclaration_semantic_checkInheritedSelector(this, cd);
-        objc_FuncDeclaration_semantic_addClassMethodList(this, cd);
-        objc_FuncDeclaration_semantic_checkLinkage(this);
-
         /* Go through all the interface bases.
          * Disallow overriding any final functions in the interface(s).
          */
@@ -1184,6 +1175,21 @@ Ldone:
 
 void FuncDeclaration::semantic2(Scope *sc)
 {
+    if (semanticRun >= PASSsemantic2done)
+        return;
+    assert(semanticRun <= PASSsemantic2);
+    semanticRun = PASSsemantic2;
+
+    objc_FuncDeclaration_semantic_setSelector(this, sc);
+    objc_FuncDeclaration_semantic_validateSelector(this);
+
+    if (ClassDeclaration *cd = parent->isClassDeclaration())
+    {
+        objc_FuncDeclaration_semantic_parentForStaticMethod(this, cd);
+        objc_FuncDeclaration_semantic_checkInheritedSelector(this, cd);
+        objc_FuncDeclaration_semantic_addClassMethodList(this, cd);
+        objc_FuncDeclaration_semantic_checkLinkage(this);
+    }
 }
 
 // Do the semantic analysis on the internals of the function.

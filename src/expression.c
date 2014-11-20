@@ -2916,6 +2916,7 @@ IdentifierExp::IdentifierExp(Loc loc, Identifier *ident)
         : Expression(loc, TOKidentifier, sizeof(IdentifierExp))
 {
     this->ident = ident;
+    semanticResult = NULL;
 }
 
 IdentifierExp *IdentifierExp::create(Loc loc, Identifier *ident)
@@ -2930,13 +2931,17 @@ Expression *IdentifierExp::semantic(Scope *sc)
 #endif
     if (type)   // This is used as the dummy expression
         return this;
+    else if (semanticResult)
+        return semanticResult;
+    assert(!semanticResult);
+    semanticResult = this;
 
     Dsymbol *scopesym;
     Dsymbol *s = sc->search(loc, ident, &scopesym);
     if (s)
     {
         if (s->errors)
-            return new ErrorExp();
+            return semanticResult = new ErrorExp();
 
         Expression *e;
 
@@ -2964,7 +2969,7 @@ Expression *IdentifierExp::semantic(Scope *sc)
                     s != s2)
                 {
                     error("with symbol %s is shadowing local symbol %s", s->toPrettyChars(), s2->toPrettyChars());
-                    return new ErrorExp();
+                    return semanticResult = new ErrorExp();
                 }
             }
             s = s->toAlias();
@@ -2998,13 +3003,13 @@ Expression *IdentifierExp::semantic(Scope *sc)
                         td = td->overroot;  // then get the start
                     e = new TemplateExp(loc, td, f);
                     e = e->semantic(sc);
-                    return e;
+                    return semanticResult = e;
                 }
             }
             // Haven't done overload resolution yet, so pass 1
             e = new DsymbolExp(loc, s, 1);
         }
-        return e->semantic(sc);
+        return semanticResult = e->semantic(sc);
     }
 
     if (hasThis(sc))
@@ -3018,7 +3023,7 @@ Expression *IdentifierExp::semantic(Scope *sc)
             e = new DotIdExp(loc, e, ident);
             e = e->trySemantic(sc);
             if (e)
-                return e;
+                return semanticResult = e;
         }
     }
 
@@ -3027,7 +3032,7 @@ Expression *IdentifierExp::semantic(Scope *sc)
         if (sc->flags & SCOPEctfe)
         {
             error("variable __ctfe cannot be read at compile time");
-            return new ErrorExp();
+            return semanticResult = new ErrorExp();
         }
 
         // Create the magic __ctfe bool variable
@@ -3035,7 +3040,7 @@ Expression *IdentifierExp::semantic(Scope *sc)
         vd->storage_class |= STCtemp;
         Expression *e = new VarExp(loc, vd);
         e = e->semantic(sc);
-        return e;
+        return semanticResult = e;
     }
 
     const char *n = importHint(ident->toChars());
@@ -3049,7 +3054,7 @@ Expression *IdentifierExp::semantic(Scope *sc)
         else
             error("undefined identifier %s", ident->toChars());
     }
-    return new ErrorExp();
+    return semanticResult = new ErrorExp();
 }
 
 int IdentifierExp::isLvalue()
