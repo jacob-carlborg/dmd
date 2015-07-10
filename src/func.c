@@ -272,8 +272,9 @@ public:
 /********************************* FuncDeclaration ****************************/
 
 FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageClass storage_class, Type *type)
-    : Declaration(id), objc(this)
+    : Declaration(id)
 {
+    objc = Objc_FuncDeclaration(this);
     //printf("FuncDeclaration(id = '%s', type = %p)\n", id->toChars(), type);
     //printf("storage_class = x%x\n", storage_class);
     this->storage_class = storage_class;

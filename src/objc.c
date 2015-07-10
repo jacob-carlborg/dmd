@@ -50,6 +50,12 @@ void objc_InterfaceDeclaration_semantic_objcExtern(InterfaceDeclaration *id, Sco
 
 // MARK: Objc_FuncDeclaration
 
+Objc_FuncDeclaration::Objc_FuncDeclaration()
+{
+    this->fdecl = NULL;
+    selector = NULL;
+}
+
 Objc_FuncDeclaration::Objc_FuncDeclaration(FuncDeclaration* fdecl)
 {
     this->fdecl = fdecl;
@@ -185,7 +191,7 @@ ObjcSelector *ObjcSelector::lookup(const char *s, size_t len, size_t pcount)
     if (!sel)
     {
         sel = new ObjcSelector(sv->toDchars(), len, pcount);
-        sv->ptrvalue = sel;
+        sv->ptrvalue = (char *)sel;
     }
     return sel;
 }
@@ -202,9 +208,9 @@ ObjcSelector *ObjcSelector::create(FuncDeclaration *fdecl)
         // rewrite "identifier" as "setIdentifier"
         char firstChar = fdecl->ident->string[0];
         if (firstChar >= 'a' && firstChar <= 'z')
-            firstChar = firstChar - 'a' + 'A';
+            firstChar = (char)(firstChar - 'a' + 'A');
 
-        buf.write("set", 3);
+        buf.writestring("set");
         buf.writeByte(firstChar);
         buf.write(fdecl->ident->string+1, fdecl->ident->len-1);
         buf.writeByte(':');

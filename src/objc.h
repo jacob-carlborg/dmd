@@ -57,6 +57,7 @@ struct Objc_FuncDeclaration
     // Objective-C method selector (member function only)
     ObjcSelector *selector;
 
+    Objc_FuncDeclaration();
     Objc_FuncDeclaration(FuncDeclaration* fdecl);
 };
 
