@@ -52,11 +52,11 @@ struct Obj
     VIRTUAL void ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym);
     VIRTUAL void ehsections();
     VIRTUAL void moduleinfo(Symbol *scc);
-    VIRTUAL int  comdat(Symbol *);
-    VIRTUAL int  comdatsize(Symbol *, targ_size_t symsize);
+    virtual int  comdat(Symbol *);
+    virtual int  comdatsize(Symbol *, targ_size_t symsize);
     VIRTUAL void setcodeseg(int seg);
-    VIRTUAL seg_data *tlsseg();
-    VIRTUAL seg_data *tlsseg_bss();
+    virtual seg_data *tlsseg();
+    virtual seg_data *tlsseg_bss();
     static int  fardata(char *name, targ_size_t size, targ_size_t *poffset);
     VIRTUAL void export_symbol(Symbol *s, unsigned argsize);
     VIRTUAL void pubdef(int seg, Symbol *s, targ_size_t offset);
@@ -117,6 +117,16 @@ struct MachObj : Obj
         unsigned targseg, int rtype, int val = 0);
 };
 
+struct MachObj64 : MachObj
+{
+    MachObj64();
+
+    symbol *tlv_bootstrap();
+    seg_data *tlsseg();
+    seg_data *tlsseg_data();
+    seg_data *tlsseg_bss();
+};
+
 struct MsCoffObj : Obj
 {
     static MsCoffObj *init(Outbuffer *, const char *filename, const char *csegname);
@@ -146,11 +156,11 @@ struct MsCoffObj : Obj
     VIRTUAL void ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym);
     VIRTUAL void ehsections();
     VIRTUAL void moduleinfo(Symbol *scc);
-    VIRTUAL int  comdat(Symbol *);
-    VIRTUAL int  comdatsize(Symbol *, targ_size_t symsize);
+    virtual int  comdat(Symbol *);
+    virtual int  comdatsize(Symbol *, targ_size_t symsize);
     VIRTUAL void setcodeseg(int seg);
-    VIRTUAL seg_data *tlsseg();
-    VIRTUAL seg_data *tlsseg_bss();
+    virtual seg_data *tlsseg();
+    virtual seg_data *tlsseg_bss();
     VIRTUAL void export_symbol(Symbol *s, unsigned argsize);
     VIRTUAL void pubdef(int seg, Symbol *s, targ_size_t offset);
     VIRTUAL void pubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize);
