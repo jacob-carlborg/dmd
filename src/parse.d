@@ -8,6 +8,12 @@
 
 module ddmd.parse;
 
+debug
+{
+    import std.stdio;
+    import std.string;
+}
+
 import core.stdc.stdio;
 import core.stdc.string;
 import ddmd.aggregate;
@@ -4559,7 +4565,40 @@ public:
         Lexp:
             {
                 Expression exp = parseExpression();
-                check(TOKsemicolon, "statement");
+
+                switch(token.value)
+                {
+                    case TOKlcurly:
+                    case TOKlparen:
+                    case TOKdelegate:
+                    case TOKfunction:
+                        {
+                            static void appendBlock(Parser parser, Expressions* arguments)
+                            {
+                                auto block = parser.parseExpression();
+                                assert(block.op == TOKfunction, "A delegate/function literal was expected to precede the call expression");
+                                arguments.push(block);
+                            }
+
+                            if (exp.op == TOKcall)
+                            {
+                                auto ce = cast(CallExp)exp;
+                                appendBlock(this, ce.arguments);
+                            }
+                            else if (exp.op == TOKidentifier)
+                            {
+                                auto args = new Expressions();
+                                appendBlock(this, args);
+                                exp = new CallExp(loc, exp, args);
+                            }
+                            else
+                                check(TOKsemicolon, "statement");
+                            break;
+                        }
+                    default:
+                        check(TOKsemicolon, "statement");
+                }
+
                 s = new ExpStatement(loc, exp);
                 break;
             }
@@ -7320,6 +7359,8 @@ public:
                 e = new PostExp(TOKminusminus, loc, e);
                 break;
             case TOKlparen:
+                if (e.op == TOKcall && peekPastParen(&token).value == TOKlcurly)
+                    return e;
                 e = new CallExp(loc, e, parseArguments());
                 continue;
             case TOKlbracket:
