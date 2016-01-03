@@ -798,7 +798,7 @@ void Obj::term(const char *objfilename)
                     continue;
 
                 int align = 1 << psechdr->align;
-                while (align < pseg->SDalignment)
+                while (psechdr->align > 0 && align < pseg->SDalignment)
                 {
                     psechdr->align += 1;
                     align <<= 1;
@@ -836,7 +836,7 @@ void Obj::term(const char *objfilename)
                     continue;
 
                 int align = 1 << psechdr->align;
-                while (align < pseg->SDalignment)
+                while (psechdr->align > 0 && align < pseg->SDalignment)
                 {
                     psechdr->align += 1;
                     align <<= 1;
