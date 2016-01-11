@@ -8,6 +8,12 @@
 
 module ddmd.expression;
 
+debug
+{
+    import std.stdio : writeln;
+    import std.string : fromStringz;
+}
+
 import core.stdc.stdarg;
 import core.stdc.stdio;
 import core.stdc.string;
@@ -8784,6 +8790,7 @@ public:
     Expressions* arguments; // function arguments
     FuncDeclaration f;      // symbol to call
     bool directcall;        // true if a virtual call is devirtualized
+    Expression trailingDelegate;
 
     extern (D) this(Loc loc, Expression e, Expressions* exps)
     {
@@ -8860,7 +8867,7 @@ public:
         Objects* tiargs = null; // initial list of template arguments
         Expression ethis = null;
         Type tthis = null;
-        Expression e1org = e1;
+        Expression e1org = e1;writeln(toChars.fromStringz, " ", e1.op);
         if (e1.op == TOKcomma)
         {
             /* Rewrite (a,b)(args) as (a,(b(args)))

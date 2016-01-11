@@ -7359,10 +7359,25 @@ public:
                 e = new PostExp(TOKminusminus, loc, e);
                 break;
             case TOKlparen:
-                if (e.op == TOKcall && peekPastParen(&token).value == TOKlcurly)
-                    return e;
-                e = new CallExp(loc, e, parseArguments());
+                if (peekPastParen(&token).value == TOKlcurly)
+                {
+                    if (e.op == TOKcall)
+                        return e;
+                    auto callExp = new CallExp(loc, e);
+                    callExp.trailingDelegate = parseExpression();
+                    e = callExp;
+                }
+                else
+                    e = new CallExp(loc, e, parseArguments());
                 continue;
+                // if (e.op == TOKcall && peekPastParen(&token).value == TOKlcurly)
+                //     return e;
+                // if (peek(&token).value == TOKlcurly)
+                //     writeln("asd");
+                // else
+                //     writeln(token.value);
+                // e = new CallExp(loc, e, parseArguments());
+                // continue;
             case TOKlbracket:
                 {
                     // array dereferences:
