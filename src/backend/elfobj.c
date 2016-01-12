@@ -1947,6 +1947,12 @@ seg_data *Obj::tlsseg_bss()
     return SegData[seg_tlsseg_bss];
 }
 
+seg_data *Obj::tlsseg_data()
+{
+    // specific for Mach-O
+    assert(0);
+}
+
 
 /*******************************
  * Output an alias definition record.

@@ -294,7 +294,7 @@ void outdata(symbol *s)
         {
             assert(config.objfmt == OBJ_MACH && I64);
 
-            seg_data *pseg = ((MachObj64*)objmod)->tlsseg_data();
+            seg_data *pseg = objmod->tlsseg_data();
             s->Sseg = pseg->SDseg;
             objmod->data_start(s, datasize, s->Sseg);
             seg = pseg->SDseg;

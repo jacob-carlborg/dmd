@@ -2046,6 +2046,11 @@ seg_data *Obj::tlsseg()
     return SegData[obj.tlssegi];
 }
 
+seg_data *Obj::tlsseg_data()
+{
+    // specific for Mach-O
+    assert(0);
+}
 
 /********************************
  * Define a far data segment.

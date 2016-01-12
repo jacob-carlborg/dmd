@@ -1902,6 +1902,25 @@ seg_data *Obj::tlsseg_bss()
     return Obj::tlsseg();
 }
 
+/*********************************
+ * Define segments for Thread Local Storage data.
+ * Output:
+ *      seg_tlsseg_data    set to segment number for TLS data segment.
+ * Returns:
+ *      segment for TLS data segment
+ */
+
+seg_data *Obj::tlsseg_data()
+{
+    //printf("Obj::tlsseg_data(\n");
+    assert(I64);
+
+    // The alignment should actually be alignment of the largest variable in
+    // the section, but this seems to work anyway.
+    if (seg_tlsseg_data == UNKNOWN)
+        seg_tlsseg_data = MachObj::getsegment("__thread_data", "__DATA", 3, S_THREAD_LOCAL_REGULAR);
+    return SegData[seg_tlsseg_data];
+}
 
 /*******************************
  * Output an alias definition record.
@@ -2784,25 +2803,6 @@ seg_data *MachObj64::tlsseg_bss()
     if (seg_tlsseg_bss == UNKNOWN)
         seg_tlsseg_bss = MachObj::getsegment("__thread_bss", "__DATA", 3, S_THREAD_LOCAL_ZEROFILL);
     return SegData[seg_tlsseg_bss];
-}
-
-/*********************************
- * Define segments for Thread Local Storage data.
- * Output:
- *      seg_tlsseg_data    set to segment number for TLS data segment.
- * Returns:
- *      segment for TLS data segment
- */
-
-seg_data *MachObj64::tlsseg_data()
-{
-    //printf("MachObj64::tlsseg_data(\n");
-
-    // The alignment should actually be alignment of the largest variable in
-    // the section, but this seems to work anyway.
-    if (seg_tlsseg_data == UNKNOWN)
-        seg_tlsseg_data = MachObj::getsegment("__thread_data", "__DATA", 3, S_THREAD_LOCAL_REGULAR);
-    return SegData[seg_tlsseg_data];
 }
 
 /******************************************

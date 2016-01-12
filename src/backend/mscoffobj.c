@@ -1676,6 +1676,12 @@ seg_data *MsCoffObj::tlsseg_bss()
     return MsCoffObj::tlsseg();
 }
 
+seg_data *MsCoffObj::tlsseg_data()
+{
+    // specific for Mach-O
+    assert(0);
+}
+
 /*************************************
  * Return segment indices for .pdata and .xdata sections
  */

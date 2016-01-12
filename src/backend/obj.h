@@ -57,6 +57,7 @@ struct Obj
     VIRTUAL void setcodeseg(int seg);
     virtual seg_data *tlsseg();
     virtual seg_data *tlsseg_bss();
+    VIRTUAL seg_data *tlsseg_data();
     static int  fardata(char *name, targ_size_t size, targ_size_t *poffset);
     VIRTUAL void export_symbol(Symbol *s, unsigned argsize);
     VIRTUAL void pubdef(int seg, Symbol *s, targ_size_t offset);
@@ -123,7 +124,6 @@ struct MachObj64 : MachObj
 
     symbol *tlv_bootstrap();
     seg_data *tlsseg();
-    seg_data *tlsseg_data();
     seg_data *tlsseg_bss();
 };
 
@@ -161,6 +161,7 @@ struct MsCoffObj : Obj
     VIRTUAL void setcodeseg(int seg);
     virtual seg_data *tlsseg();
     virtual seg_data *tlsseg_bss();
+    virtual seg_data *tlsseg_data();
     VIRTUAL void export_symbol(Symbol *s, unsigned argsize);
     VIRTUAL void pubdef(int seg, Symbol *s, targ_size_t offset);
     VIRTUAL void pubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize);
