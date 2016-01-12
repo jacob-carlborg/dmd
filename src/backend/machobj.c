@@ -2750,11 +2750,6 @@ void Obj::gotref(symbol *s)
     }
 }
 
-MachObj64::MachObj64()
-{
-    assert(I64);
-}
-
 /**
  * Returns the symbol for the __tlv_bootstrap function.
  *
@@ -2762,11 +2757,16 @@ MachObj64::MachObj64()
  * It's used as a placeholder in the TLV descriptors. The dynamic linker will
  * replace the placeholder with a real function at load time.
  */
-symbol *MachObj64::tlv_bootstrap()
+symbol *Obj::tlv_bootstrap()
 {
     if (!tlv_bootstrap_sym)
         tlv_bootstrap_sym = symbol_name("__tlv_bootstrap", SCextern, type_fake(TYnfunc));
     return tlv_bootstrap_sym;
+}
+
+MachObj64::MachObj64()
+{
+    assert(I64);
 }
 
 /*********************************

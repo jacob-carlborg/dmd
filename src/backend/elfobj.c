@@ -3501,6 +3501,12 @@ void Obj::gotref(symbol *s)
     }
 }
 
+symbol *Obj::tlv_bootstrap()
+{
+    // specific for Mach-O
+    assert(0);
+}
+
 #endif
 
 /******************************************

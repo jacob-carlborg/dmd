@@ -2625,6 +2625,11 @@ void MsCoffObj::setcodeseg(int seg)
     cseg = seg;
 }
 
+symbol *MsCoffObj::tlv_bootstrap()
+{
+    // specific for Mach-O
+    assert(0);
+}
 
 #endif
 #endif

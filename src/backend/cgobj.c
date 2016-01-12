@@ -3704,6 +3704,11 @@ void Obj::fltused()
     }
 }
 
+symbol *Obj::tlv_bootstrap()
+{
+    // specific for Mach-O
+    assert(0);
+}
 
 /****************************************
  * Find longest match of pattern[] in dict[].

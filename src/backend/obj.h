@@ -87,6 +87,8 @@ struct Obj
     VIRTUAL void func_start(Symbol *sfunc);
     VIRTUAL void func_term(Symbol *sfunc);
 
+    VIRTUAL symbol *tlv_bootstrap();
+
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     static unsigned addstr(Outbuffer *strtab, const char *);
     static void gotref(symbol *s);
@@ -122,7 +124,6 @@ struct MachObj64 : MachObj
 {
     MachObj64();
 
-    symbol *tlv_bootstrap();
     seg_data *tlsseg();
     seg_data *tlsseg_bss();
 };
@@ -209,6 +210,8 @@ struct MsCoffObj : Obj
     static int seg_debugS();
     VIRTUAL int seg_debugT();
     static int seg_debugS_comdat(Symbol *sfunc);
+
+    VIRTUAL symbol *tlv_bootstrap();
 };
 
 #undef VIRTUAL
