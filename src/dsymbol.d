@@ -1243,6 +1243,11 @@ extern (C++) class Dsymbol : RootObject
         return null;
     }
 
+    MacroDeclaration isMacroDeclaration()
+    {
+        return null;
+    }
+
     /************
      */
     void accept(Visitor v)

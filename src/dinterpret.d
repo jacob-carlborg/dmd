@@ -8,6 +8,12 @@
 
 module ddmd.dinterpret;
 
+debug
+{
+    import std.stdio : writeln;
+    import std.string : fromStringz;
+}
+
 import core.stdc.stdio;
 import core.stdc.string;
 import ddmd.apply;

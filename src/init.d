@@ -13,6 +13,12 @@ module ddmd.init;
 import core.stdc.stdio;
 import core.checkedint;
 
+debug
+{
+    import std.stdio : writeln;
+    import std.string : fromStringz;
+}
+
 import ddmd.aggregate;
 import ddmd.arraytypes;
 import ddmd.dcast;

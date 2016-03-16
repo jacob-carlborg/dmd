@@ -543,6 +543,7 @@ final class Parser : Lexer
             case TOKunion:
             case TOKclass:
             case TOKinterface:
+            case TOKmacro:
             Ldeclaration:
                 a = parseDeclarations(false, pAttrs, pAttrs.comment);
                 if (a && a.dim)
@@ -3770,7 +3771,7 @@ final class Parser : Lexer
         assert(0);
     }
 
-    Type parseDeclarator(Type t, int* palt, Identifier* pident, TemplateParameters** tpl = null, StorageClass storageClass = 0, int* pdisable = null, Expressions** pudas = null)
+    Type parseDeclarator(Type t, int* palt, Identifier* pident, TemplateParameters** tpl = null, StorageClass storageClass = 0, int* pdisable = null, Expressions** pudas = null, bool isMacro = false)
     {
         //printf("parseDeclarator(tpl = %p)\n", tpl);
         t = parseBasicType2(t);
@@ -4100,16 +4101,26 @@ final class Parser : Lexer
         auto loc = token.loc;
         Expressions* udas = null;
         Token* tk;
+        bool isMacro = false;
 
         //printf("parseDeclarations() %s\n", token.toChars());
         if (!comment)
             comment = token.blockComment;
+
+        if (token.value == TOKmacro)
+        {
+            isMacro = true;
+            nextToken();
+        }
 
         if (autodecl)
         {
             ts = null; // infer type
             goto L2;
         }
+
+        if (isMacro)
+            goto TYPE_INFERENCE;
 
         if (token.value == TOKalias)
         {
@@ -4256,6 +4267,13 @@ final class Parser : Lexer
 
         parseStorageClasses(storage_class, link, setAlignment, ealign, udas);
 
+        if (token.value == TOKmacro)
+        {
+            isMacro = true;
+            nextToken();
+            goto TYPE_INFERENCE;
+        }
+
         if (token.value == TOKstruct ||
             token.value == TOKunion ||
             token.value == TOKclass ||
@@ -4310,9 +4328,10 @@ final class Parser : Lexer
             return a;
         }
 
-        /* Look for return type inference for template functions.
+    TYPE_INFERENCE:
+        /* Look for return type  for template functions.
          */
-        if ((storage_class || udas) && token.value == TOKidentifier && skipParens(peek(&token), &tk) && skipAttributes(tk, &tk) && (tk.value == TOKlparen || tk.value == TOKlcurly || tk.value == TOKin || tk.value == TOKout || tk.value == TOKbody))
+        if ((storage_class || udas || isMacro) && token.value == TOKidentifier && skipParens(peek(&token), &tk) && skipAttributes(tk, &tk) && (tk.value == TOKlparen || tk.value == TOKlcurly || tk.value == TOKin || tk.value == TOKout || tk.value == TOKbody))
         {
             ts = null;
         }
@@ -4340,7 +4359,7 @@ final class Parser : Lexer
 
             loc = token.loc;
             ident = null;
-            t = parseDeclarator(ts, &alt, &ident, &tpl, storage_class, &disable, &udas);
+            t = parseDeclarator(ts, &alt, &ident, &tpl, storage_class, &disable, &udas, isMacro);
             assert(t);
             if (!tfirst)
                 tfirst = t;
@@ -4433,7 +4452,11 @@ final class Parser : Lexer
                 }
 
                 //printf("%s funcdecl t = %s, storage_class = x%lx\n", loc.toChars(), t.toChars(), storage_class);
-                auto f = new FuncDeclaration(loc, Loc(), ident, storage_class | (disable ? STCdisable : 0), t);
+                FuncDeclaration f;
+                if (isMacro)
+                    f = new MacroDeclaration(loc, Loc(), ident, storage_class | (disable ? STCdisable : 0), t);
+                else
+                    f = new FuncDeclaration(loc, Loc(), ident, storage_class | (disable ? STCdisable : 0), t);
                 if (pAttrs)
                     pAttrs.storageClass = STCundefined;
                 if (tpl)
@@ -4991,6 +5014,7 @@ final class Parser : Lexer
         case TOKunion:
         case TOKclass:
         case TOKinterface:
+        case TOKmacro:
         Ldeclaration:
             {
                 Dsymbols* a = parseDeclarations(false, null, null);

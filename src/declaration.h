@@ -634,6 +634,11 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 };
 
+class MacroDeclaration : public FuncDeclaration
+{
+    MacroDeclaration(Loc loc, Loc endloc, Identifier *id, StorageClass storage_class, Type *type);
+};
+
 FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
         Objects *tiargs,
         Type *tthis,

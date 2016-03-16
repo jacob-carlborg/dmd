@@ -3988,6 +3988,29 @@ extern (C++) class FuncDeclaration : Declaration
     }
 }
 
+extern (C++) class MacroDeclaration : FuncDeclaration
+{
+    final extern (D) this(Loc loc, Loc endLoc, Identifier id, StorageClass storageClass, Type type)
+    {
+        super(loc, endLoc, id, storageClass, type);
+    }
+
+    override MacroDeclaration isMacroDeclaration()
+    {
+        return this;
+    }
+
+    override bool isVirtual()
+    {
+        return false;
+    }
+
+    override const(char)* kind()
+    {
+        return "macro";
+    }
+}
+
 /********************************************************
  * Generate Expression to call the invariant.
  * Input:

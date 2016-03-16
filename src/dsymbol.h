@@ -73,6 +73,7 @@ class SymbolDeclaration;
 class Expression;
 class DeleteDeclaration;
 class OverloadSet;
+class MacroDeclaration;
 struct AA;
 
 struct Ungag
@@ -278,6 +279,7 @@ public:
     virtual AttribDeclaration *isAttribDeclaration() { return NULL; }
     virtual AnonDeclaration *isAnonDeclaration() { return NULL; }
     virtual OverloadSet *isOverloadSet() { return NULL; }
+    virtual MacroDeclaration *isMacroDeclaration() { return NULL; }
     virtual void accept(Visitor *v) { v->visit(this); }
 };
 
