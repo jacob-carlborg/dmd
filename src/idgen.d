@@ -369,6 +369,27 @@ Msgtable[] msgtable =
 
     // Compiler recognized UDA's
     { "udaSelector", "selector" },
+
+    // Macro package
+    { "ast" },
+
+    // Macro modules
+    { "ast_node" },
+    { "declaration" },
+    { "expression" },
+    { "initializer" },
+    { "symbol" },
+
+    // Macro AST nodes
+    { "AstNode" },
+    { "AddExp" },
+    { "IntegerExp" },
+
+    // Macro AST fields
+    { "nodeType" },
+    { "left" },
+    { "right" },
+    { "value" }
 ];
 
 

@@ -4005,7 +4005,7 @@ extern (C++) class MacroDeclaration : FuncDeclaration
         return false;
     }
 
-    override const(char)* kind()
+    override const(char)* kind() const
     {
         return "macro";
     }

@@ -715,6 +715,8 @@ extern (C++) void ctfeCompile(FuncDeclaration fd)
  */
 extern (C++) Expression ctfeInterpret(Expression e)
 {
+    if (!e.type)
+        printf("ctfeInterpret %s %p\n", e.toChars());
     if (e.op == TOKerror)
         return e;
     assert(e.type); // https://issues.dlang.org/show_bug.cgi?id=14642

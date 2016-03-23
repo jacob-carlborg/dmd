@@ -263,6 +263,11 @@ extern (C++) class Package : ScopeDsymbol
         }
         return null;
     }
+
+    bool isCorePackage(const Identifier ident) const
+    {
+        return this.ident == ident && parent && parent.ident == Id.core && !parent.parent;
+    }
 }
 
 /***********************************************************
@@ -1357,6 +1362,14 @@ extern (C++) final class Module : Package
     bool isCoreModule(Identifier ident)
     {
         return this.ident == ident && parent && parent.ident == Id.core && !parent.parent;
+    }
+
+    bool isCoreModule(Identifier package_, Identifier module_)
+    {
+        return ident == module_ &&
+            parent && parent.ident == package_ &&
+            parent.parent && parent.parent.ident == Id.core &&
+            !parent.parent.parent;
     }
 
     // Back end

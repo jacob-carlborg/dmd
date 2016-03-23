@@ -53,6 +53,7 @@ public:
     void accept(Visitor *v) { v->visit(this); }
 
     Module *isPackageMod();
+    bool isCorePackage(Identifier *ident) const;
 };
 
 class Module : public Package
@@ -147,6 +148,7 @@ public:
     // true if the module source file is directly
     // listed in command line.
     bool isCoreModule(Identifier *ident);
+    bool isCoreModule(Identifier *package_, Identifier *module_);
 
     // Back end
 

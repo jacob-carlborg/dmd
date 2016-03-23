@@ -14,6 +14,17 @@ debug
 {
     import std.stdio : writeln;
     import std.string : fromStringz;
+
+    void printArgs(Expressions* args)
+    {
+        OutBuffer buf;
+        HdrGenState hgs;
+
+        scope visitor = new PrettyPrintVisitor(&buf, &hgs);
+        visitor.argsToBuffer(args);
+
+        printf("(%s)\n", buf.extractString);
+    }
 }
 
 import core.stdc.stdarg;
@@ -27,6 +38,7 @@ import ddmd.apply;
 import ddmd.argtypes;
 import ddmd.arrayop;
 import ddmd.arraytypes;
+import ddmd.ast_macro;
 import ddmd.attrib;
 import ddmd.gluelayer;
 import ddmd.canthrow;
@@ -9538,7 +9550,7 @@ extern (C++) final class CallExp : UnaExp
         return new CallExp(loc, e, earg1);
     }
 
-    override Expression syntaxCopy()
+    override CallExp syntaxCopy()
     {
         return new CallExp(loc, e1.syntaxCopy(), arraySyntaxCopy(arguments));
     }
@@ -9567,6 +9579,8 @@ extern (C++) final class CallExp : UnaExp
         Expression ethis = null;
         Type tthis = null;
         Expression e1org = e1;
+
+        auto macroArguments = arraySyntaxCopy(arguments);
 
         if (e1.op == TOKcomma)
         {
@@ -10294,6 +10308,19 @@ extern (C++) final class CallExp : UnaExp
 
             f = ve.var.isFuncDeclaration();
             assert(f);
+
+            if (f.isMacroDeclaration)
+            {
+                if (arguments)
+                {
+                    toMacroArguments(loc, sc, macroArguments, arguments);
+                    if (arrayExpressionSemantic(macroArguments, sc) || preFunctionParameters(loc, sc, macroArguments))
+                        return new ErrorExp();
+                }
+
+                arguments = macroArguments;
+            }
+
             tiargs = null;
 
             if (ve.hasOverloads)
@@ -10389,6 +10416,15 @@ extern (C++) final class CallExp : UnaExp
         if (f && f.isFuncLiteralDeclaration() && sc.func && !sc.intypeof)
         {
             f.tookAddressOf = 0;
+        }
+
+        if (f && f.isMacroDeclaration)
+        {
+            auto macroAst = ctfeInterpret();
+            auto result = fromMacroAst(loc, f.isMacroDeclaration, macroAst);
+            result.semantic(sc);
+
+            return result;
         }
 
         return combine(argprefix, this);
