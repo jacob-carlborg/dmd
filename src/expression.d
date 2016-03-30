@@ -10421,7 +10421,7 @@ extern (C++) final class CallExp : UnaExp
         if (f && f.isMacroDeclaration)
         {
             auto macroAst = ctfeInterpret();
-            auto result = fromMacroAst(loc, f.isMacroDeclaration, macroAst);
+            auto result = fromMacroAst(loc, sc, f.isMacroDeclaration, macroAst);
             result.semantic(sc);
 
             return result;

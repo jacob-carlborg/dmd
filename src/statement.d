@@ -10,6 +10,12 @@
 
 module ddmd.statement;
 
+debug
+{
+    import std.stdio : writeln, writefln;
+    import std.string : fromStringz;
+}
+
 import core.stdc.stdarg;
 import core.stdc.stdio;
 

@@ -389,7 +389,10 @@ Msgtable[] msgtable =
     { "nodeType" },
     { "left" },
     { "right" },
-    { "value" }
+    { "value" },
+    { "ident" },
+    { "type" },
+    { "typeKind" }
 ];
 
 

@@ -28,6 +28,7 @@ import ddmd.func;
 import ddmd.globals;
 import ddmd.id;
 import ddmd.identifier;
+import ddmd.init;
 import ddmd.mtype;
 import ddmd.tokens;
 import ddmd.visitor;
@@ -104,7 +105,7 @@ Expression toMacroAst(Loc loc, Expression exp)
     return v.result;
 }
 
-Expression fromMacroAst(Loc loc, MacroDeclaration md, Expression exp)
+Expression fromMacroAst(Loc loc, Scope* sc, MacroDeclaration md, Expression exp)
 {
     static bool isAstPackage(ClassDeclaration decl)
     {
@@ -145,7 +146,7 @@ Expression fromMacroAst(Loc loc, MacroDeclaration md, Expression exp)
         macroAst.init(loc);
 
     if (auto classRef = getClassRefExp(exp))
-        return FromMacroAst(loc, md).visit(classRef);
+        return FromMacroAst(loc, sc, md).visit(classRef);
     else
     {
         md.error(loc, "needs to return a value of type %s, not (%s) of type %s",
@@ -232,7 +233,9 @@ struct FromMacroAst
 
     private enum dispatchTable = [
         NodeType.addExp: &visitAddExp,
-        NodeType.integerExp: &visitIntegerExp
+        NodeType.integerExp: &visitIntegerExp,
+        NodeType.varDeclaration: &visitVarDeclaration,
+        NodeType.basicType: &visitBasicType
     ];
 
     // This enum needs to match the one in the core.ast.ast_node
@@ -240,13 +243,23 @@ struct FromMacroAst
     {
         astNode,
 
+        declaration,
+        varDeclaration,
+
         expression,
         binExp,
         addExp,
-        integerExp
+        integerExp,
+
+        initializer,
+        symbol,
+
+        type,
+        basicType
     }
 
     Loc loc;
+    Scope* sc;
     MacroDeclaration md;
 
     Expression visit(ClassReferenceExp exp)
@@ -274,6 +287,41 @@ private:
         assert(isValidIntegerExp(value));
 
         return value;
+    }
+
+    Expression visitVarDeclaration(ClassReferenceExp exp)
+    {
+        auto identExp = getFieldValue(exp, Id.ident);
+        auto ident = expToIdent(identExp);
+
+        auto typeExp = getFieldValue(exp, Id.type);
+        auto type = expToType(fromMacroAst(typeExp));
+
+        auto initExp = getFieldValue(exp, Id.initializer);
+        initExp = initExp.op == TOKnull ? initExp : fromMacroAst(initExp);
+        auto init = expToInit(initExp);
+
+        auto var = new VarDeclaration(loc, type, ident, init);
+        var.linkage = LINKd;
+
+        return new DeclarationExp(loc, var);
+    }
+
+    Expression visitBasicType(ClassReferenceExp exp)
+    {
+        auto typeKind = getFieldValue(exp, Id.typeKind);
+        auto ty = expToTY(typeKind);
+        Type type;
+
+        switch(ty)
+        {
+            case Tint32: type = Type.tint32; break;
+            default:
+                printf("visitTypeBasic ty=%s\n", ty);
+                assert(0);
+        }
+
+        return new TypeExp(loc, type);
     }
 
     NodeType extractNodeType(ClassReferenceExp exp)
@@ -326,7 +374,7 @@ private:
 
     Expression fromMacroAst(Expression exp)
     {
-        return .fromMacroAst(loc, md, exp);
+        return .fromMacroAst(loc, sc, md, exp);
     }
 
     Expression getFieldValue(ClassReferenceExp exp, Identifier ident)
@@ -387,5 +435,41 @@ private:
                 return true;
             default: return false;
         }
+    }
+
+    Identifier expToIdent(Expression exp)
+    {
+        assert(exp.op == TOKstring);
+        auto stringExp = cast(StringExp) exp;
+        auto name = stringExp.peekSlice();
+
+        return Identifier.idPool(name);
+    }
+
+    ulong epxToUlong(Expression exp)
+    {
+        assert(isValidIntegerExp(exp));
+        auto intExp = cast(IntegerExp) exp;
+        return intExp.toInteger();
+    }
+
+    TY expToTY(Expression exp)
+    {
+        auto value = epxToUlong(exp);
+        assert(value >= 0 && value < TMAX);
+
+        return cast(TY) value;
+    }
+
+    Type expToType(Expression exp)
+    {
+        assert(exp.op == TOKtype);
+        return exp.type;
+    }
+
+    Initializer expToInit(Expression exp)
+    {
+        // return new ExpInitializer(loc, exp);
+        return exp.op == TOKnull ? null : new ExpInitializer(loc, exp);
     }
 }
