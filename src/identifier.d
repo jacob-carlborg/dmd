@@ -129,8 +129,13 @@ public:
 
     static Identifier generateId(const(char)* prefix, size_t i)
     {
+        return generateId(prefix, strlen(prefix), i);
+    }
+
+    static Identifier generateId(const(char)* prefix, size_t len, size_t i)
+    {
         OutBuffer buf;
-        buf.writestring(prefix);
+        buf.write(prefix, len);
         buf.printf("%llu", cast(ulong)i);
         return idPool(buf.peekSlice());
     }

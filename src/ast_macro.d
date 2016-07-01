@@ -146,7 +146,10 @@ Expression fromMacroAst(Loc loc, Scope* sc, MacroDeclaration md, Expression exp)
         macroAst.init(loc);
 
     if (auto classRef = getClassRefExp(exp))
-        return FromMacroAst(loc, sc, md).visit(classRef);
+    {
+        auto invocation = MacroInvocation(loc, sc, md);
+        return FromMacroAst(invocation).visit(classRef);
+    }
     else
     {
         md.error(loc, "needs to return a value of type %s, not (%s) of type %s",
@@ -160,6 +163,30 @@ Expression fromMacroAst(Loc loc, Scope* sc, MacroDeclaration md, Expression exp)
 private:
 
 __gshared MacroAst macroAst;
+
+struct MacroInvocation
+{
+    private __gshared static size_t globalIdSuffix = 0;
+
+    Loc loc;
+    Scope* sc;
+    MacroDeclaration macroDeclaration;
+
+    private size_t idSuffix;
+
+    this(Loc loc, Scope* sc, MacroDeclaration macroDeclaration)
+    {
+        this.loc = loc;
+        this.sc = sc;
+        this.macroDeclaration = macroDeclaration;
+        idSuffix = globalIdSuffix++;
+    }
+
+    Identifier generateId(const(char)[] prefix)
+    {
+        return Identifier.generateId(prefix.ptr, prefix.length, idSuffix);
+    }
+}
 
 struct MacroAst
 {
@@ -261,6 +288,15 @@ struct FromMacroAst
     Loc loc;
     Scope* sc;
     MacroDeclaration md;
+    MacroInvocation invocation;
+
+    this(MacroInvocation invocation)
+    {
+        this.invocation = invocation;
+        this.loc = invocation.loc;
+        this.sc = invocation.sc;
+        this.md = invocation.macroDeclaration;
+    }
 
     Expression visit(ClassReferenceExp exp)
     {
@@ -443,7 +479,7 @@ private:
         auto stringExp = cast(StringExp) exp;
         auto name = stringExp.peekSlice();
 
-        return Identifier.idPool(name);
+        return invocation.generateId(name);
     }
 
     ulong epxToUlong(Expression exp)
