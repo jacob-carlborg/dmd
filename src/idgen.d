@@ -378,12 +378,23 @@ Msgtable[] msgtable =
     { "declaration" },
     { "expression" },
     { "initializer" },
+    { "statement" },
     { "symbol" },
 
     // Macro AST nodes
     { "AstNode" },
+    { "VarDeclaration" },
     { "AddExp" },
+    { "AssignExpression" },
+    { "BlitExpression" },
+    { "DeclarationExpression" },
     { "IntegerExp" },
+    { "SymbolExpression" },
+    { "VariableExpression" },
+    { "ExpressionInitializer" },
+    { "CompoundStatement" },
+    { "ExpressionStatement" },
+    { "BasicType" },
 
     // Macro AST fields
     { "nodeType" },

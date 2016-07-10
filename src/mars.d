@@ -256,6 +256,35 @@ extern (C++) void genCmain(Scope* sc)
  */
 private int tryMain(size_t argc, const(char)** argv)
 {
+    import core.sys.osx.execinfo;
+    import core.sys.posix.signal; // segv handler
+
+    static extern (C) void unittestSegvHandler( int signum, siginfo_t* info, void* ptr ) nothrow
+    {
+        static enum MAXFRAMES = 128;
+        void*[MAXFRAMES]  callstack;
+        int               numframes;
+
+        numframes = backtrace( callstack.ptr, MAXFRAMES );
+        backtrace_symbols_fd( callstack.ptr, numframes, 2 );
+    }
+
+    sigaction_t action = void;
+    sigaction_t oldseg = void;
+    sigaction_t oldbus = void;
+
+    (cast(byte*) &action)[0 .. action.sizeof] = 0;
+    sigfillset( &action.sa_mask ); // block other signals
+    action.sa_flags = SA_SIGINFO | SA_RESETHAND;
+    action.sa_sigaction = &unittestSegvHandler;
+    sigaction( SIGSEGV, &action, &oldseg );
+    sigaction( SIGBUS, &action, &oldbus );
+    scope( exit )
+    {
+        sigaction( SIGSEGV, &oldseg, null );
+        sigaction( SIGBUS, &oldbus, null );
+    }
+
     Strings files;
     Strings libmodules;
     global._init();

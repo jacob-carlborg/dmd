@@ -16,6 +16,8 @@ debug
     import std.string : fromStringz;
 }
 
+import ddmd.root.array;
+
 import ddmd.arraytypes;
 import ddmd.ctfeexpr;
 import ddmd.dclass;
@@ -30,6 +32,7 @@ import ddmd.id;
 import ddmd.identifier;
 import ddmd.init;
 import ddmd.mtype;
+import ddmd.statement;
 import ddmd.tokens;
 import ddmd.visitor;
 
@@ -38,14 +41,16 @@ void toMacroArguments(Loc loc, Scope* sc, Expressions* macroArgs, Expressions* a
     foreach (i, arg ; *args)
     {
         arg = arg.semantic(sc);
-        auto result = toMacroAst(loc, arg);
+        auto result = toMacroAst(loc, arg, true);
 
         if (result)
             (*macroArgs)[i] = result;
     }
 }
 
-Expression toMacroAst(Loc loc, Expression exp)
+__gshared Expression[void*] visited;
+
+Expression toMacroAst(T)(Loc loc, T exp, bool topLevel = false)
 {
     extern (C++) scope final class ToMacroAst : Visitor
     {
@@ -53,15 +58,19 @@ Expression toMacroAst(Loc loc, Expression exp)
 
         Loc loc;
         Expression result;
+        bool topLevel;
 
-        this(Loc loc)
+        this(Loc loc, bool topLevel)
         {
             this.loc = loc;
+            this.topLevel = topLevel;
         }
 
-        override void visit(Expression)
+        override void visit(Expression exp)
         {
-            assert(0);
+            assert(0, "visit method not implemented for '" ~
+                exp.toChars.fromStringz ~ "' of type '" ~
+                exp.type.toChars.fromStringz ~ "'");
         }
 
         override void visit(AddExp exp)
@@ -72,10 +81,163 @@ Expression toMacroAst(Loc loc, Expression exp)
             result = createNewExp(macroAst.types.addExp, ctorArgs);
         }
 
+        override void visit(BlitExp exp)
+        {
+            __gshared static bool[void*] visited;
+
+            if (cast(void*) exp in visited)
+            {
+                if (!result)
+                    result = new NewExp(loc, null, null, macroAst.types.blitExpression, null);
+                return;
+            }
+
+            visited[cast(void*) exp] = true;
+
+            auto left = toMacroAst(loc, exp.e1);
+            NewExp foobar;
+
+            if (left.op == TOKnew)
+            {
+                auto n = cast(NewExp) left;
+
+                if (n.arguments.dim >= 0)
+                {
+                    auto a = (*n.arguments)[0];
+
+                    if (a.op == TOKnew)
+                    {
+                        auto b = cast(NewExp) a;
+
+                        if (b.arguments.dim >= 0)
+                        {
+                            auto c = (*b.arguments)[0];
+                            if (c.op == TOKnew)
+                            {
+                                auto d = cast(NewExp) c;
+
+                                if (d.arguments.dim >= 0)
+                                {
+                                    auto e = (*d.arguments)[0];
+                                    if (e.op == TOKnew)
+                                    {
+                                        auto f = cast(NewExp) e;
+                                        if (f.arguments is null)
+                                            foobar = f;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            auto right = toMacroAst(loc, exp.e2);
+            auto ctorArgs = createCtorArgs(left, right);
+
+            result = createNewExp(macroAst.types.blitExpression, ctorArgs);
+
+            if (foobar)
+                foobar.arguments = ctorArgs;
+        }
+
+        override void visit(DeclarationExp exp)
+        {
+            auto decl = toMacroAst(loc, exp.declaration);
+            auto ctorArgs = createCtorArgs(decl);
+
+            result = createNewExp(macroAst.types.declarationExpression, ctorArgs);
+        }
+
         override void visit(IntegerExp exp)
         {
             auto ctorArgs = createCtorArgs(exp);
             result = createNewExp(macroAst.types.integerExp, ctorArgs);
+        }
+
+        override void visit(FuncExp exp)
+        {
+            if (topLevel)
+            {
+                auto body_ = toMacroAst(loc, exp.fd.fbody);
+                auto ctorArgs = createCtorArgs(body_);
+
+                result = createNewExp(macroAst.types.compoundStatement, ctorArgs);
+            }
+            else
+                assert(0);
+        }
+
+        override void visit(VarExp exp)
+        {
+            auto decl = toMacroAst(loc, exp.var);
+            auto ctorArgs = createCtorArgs(decl);
+
+            result = createNewExp(macroAst.types.variableExpression, ctorArgs);
+        }
+
+        override void visit(Declaration d)
+        {
+            assert(0, "visit method not implemented for declaration '" ~
+                d.kind.fromStringz ~ "'");
+        }
+
+        override void visit(FuncLiteralDeclaration fd)
+        {
+            (cast(FuncDeclaration) fd).accept(this);
+        }
+
+        override void visit(VarDeclaration var)
+        {
+            auto init = toMacroAst(loc, var._init);
+            auto type = toMacroAst(loc, var.type);
+            auto ctorArgs = createCtorArgs(init, type);
+
+            result = createNewExp(macroAst.types.variableDeclaration, ctorArgs);
+        }
+
+        override void visit(ExpInitializer ei)
+        {
+            auto exp = toMacroAst(loc, ei.exp);
+            auto ctorArgs = createCtorArgs(exp);
+
+            result = createNewExp(macroAst.types.expressionInitializer, ctorArgs);
+        }
+
+        override void visit(Statement s)
+        {
+            assert(0, "visit method not implemented for '" ~
+                s.toChars.fromStringz ~ "'");
+        }
+
+        override void visit(CompoundStatement cs)
+        {
+            auto statements = toArrayLiteral(cs.statements);
+            auto ctorArgs = createCtorArgs(statements);
+
+            result = createNewExp(macroAst.types.compoundStatement, ctorArgs);
+        }
+
+        override void visit(ExpStatement es)
+        {
+            auto exp = toMacroAst(loc, es.exp);
+            auto ctorArgs = createCtorArgs(exp);
+
+            result = createNewExp(macroAst.types.expressionStatement, ctorArgs);
+        }
+
+        override void visit(Type t)
+        {
+            assert(false, "visit method not implemented for type '" ~
+                t.kind.fromStringz ~ "'");
+        }
+
+        override void visit(TypeBasic t)
+        {
+            auto exp = new IntegerExp(t.ty);
+            auto ctorArgs = createCtorArgs(exp);
+
+            result = createNewExp(macroAst.types.basicType, ctorArgs);
         }
 
         extern(D):
@@ -94,14 +256,25 @@ Expression toMacroAst(Loc loc, Expression exp)
         {
             return new NewExp(loc, null, null, type, args);
         }
+
+        ArrayLiteralExp toArrayLiteral(T)(Array!(T)* array)
+        {
+            auto expressions = new Expressions;
+            expressions.reserve(array.dim);
+
+            foreach (i ; 0 .. array.dim)
+                expressions.push(toMacroAst(loc, (*array)[i]));
+
+            return new ArrayLiteralExp(loc, expressions);
+        }
     }
 
     if (!macroAst.initialized)
         macroAst.init(loc);
 
-    scope v = new ToMacroAst(loc);
+    scope v = new ToMacroAst(loc, topLevel);
     exp.accept(v);
-
+    assert(v.result);
     return v.result;
 }
 
@@ -193,12 +366,20 @@ struct MacroAst
     static struct Modules
     {
         Module astNode;
+        Module declaration;
         Module expression;
+        Module initializer;
+        Module statement;
+        Module type;
 
         void init()
         {
             astNode = findModule(Id.ast_node);
+            declaration = findModule(Id.declaration);
             expression = findModule(Id.expression);
+            initializer = findModule(Id.initializer);
+            statement = findModule(Id.statement);
+            type = findModule(Id.type);
         }
 
         Module findModule(Identifier ident)
@@ -217,14 +398,44 @@ struct MacroAst
     static struct Types
     {
         Type astNode;
+
+        Type variableDeclaration;
+
         Type addExp;
+        Type assignExpression;
+        Type blitExpression;
+        Type declarationExpression;
         Type integerExp;
+        Type symbolExpression;
+        Type variableExpression;
+
+        Type expressionInitializer;
+
+        Type compoundStatement;
+        Type expressionStatement;
+
+        Type basicType;
 
         void init(Loc loc, /*const*/ ref Modules modules)
         {
             astNode = findType(loc, modules.astNode, Id.AstNode);
+
+            variableDeclaration = findType(loc, modules.declaration, Id.VarDeclaration);
+
             addExp = findType(loc, modules.expression, Id.AddExp);
+            assignExpression = findType(loc, modules.expression, Id.AssignExpression);
+            blitExpression = findType(loc, modules.expression, Id.BlitExpression);
+            declarationExpression = findType(loc, modules.expression, Id.DeclarationExpression);
             integerExp = findType(loc, modules.expression, Id.IntegerExp);
+            symbolExpression = findType(loc, modules.expression, Id.SymbolExpression);
+            variableExpression = findType(loc, modules.expression, Id.VariableExpression);
+
+            expressionInitializer = findType(loc, modules.initializer, Id.ExpressionInitializer);
+
+            compoundStatement = findType(loc, modules.statement, Id.CompoundStatement);
+            expressionStatement = findType(loc, modules.statement, Id.ExpressionStatement);
+
+            basicType = findType(loc, modules.type, Id.BasicType);
         }
 
         Type findType(Loc loc, Module mod, Identifier ident)
@@ -272,14 +483,25 @@ struct FromMacroAst
 
         declaration,
         varDeclaration,
+        functionDeclaration,
 
         expression,
-        binExp,
+        assignExpression,
         addExp,
+        binExp,
+        blitExpression,
+        declarationExpression,
         integerExp,
+        symbolExpression,
+        variableExpression,
 
         initializer,
+        expressionInitializer,
+
         symbol,
+
+        statement,
+        compoundStatement,
 
         type,
         basicType
