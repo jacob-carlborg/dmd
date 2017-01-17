@@ -127,6 +127,7 @@ public:
     TOK op;                     // to minimize use of dynamic_cast
     unsigned char size;         // # of bytes in Expression so we can copy() it
     unsigned char parens;       // if this is a parenthesized expression
+    Expression *macroAst;
 
     static void init();
     Expression *copy();

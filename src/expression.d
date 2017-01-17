@@ -2034,6 +2034,15 @@ extern (C++) bool functionParameters(Loc loc, Scope* sc, TypeFunction tf, Type t
     return (err || olderrors != global.errors);
 }
 
+/**
+ * Returns: `true` if the given macro declaration is the compiler recognized
+ * `core.ast.ast` macro.
+ */
+private bool isAstMacro(MacroDeclaration decl)
+{
+    return decl.ident == Id.ast;
+}
+
 /****************************************************************/
 /* A type meant as a union of all the Expression types,
  * to serve essentially as a Variant that will sit on the stack
@@ -2500,6 +2509,7 @@ extern (C++) abstract class Expression : RootObject
     TOK op;         // to minimize use of dynamic_cast
     ubyte size;     // # of bytes in Expression so we can copy() it
     ubyte parens;   // if this is a parenthesized expression
+    bool macroAstGenerated;
 
     final extern (D) this(Loc loc, TOK op, int size)
     {
@@ -4462,6 +4472,11 @@ extern (C++) final class StringExp : Expression
         this.string = cast(char*)string;
         this.len = len;
         this.sz = 1;                    // work around LDC bug #1286
+    }
+
+    extern (D) this(Loc loc, const(char)[] string)
+    {
+        this(loc, cast(void*) string.ptr, string.length);
     }
 
     extern (D) this(Loc loc, void* string, size_t len, char postfix)
@@ -8481,7 +8496,7 @@ extern (C++) final class DotIdExp : UnaExp
         static if (LOGSEMANTIC)
         {
             printf("DotIdExp::semantic(this = %p, '%s')\n", this, toChars());
-            //printf("e1.op = %d, '%s'\n", e1.op, Token::toChars(e1.op));
+            printf("e1.op = %d, '%s' %s %s\n", e1.op, Token.toChars(e1.op), e1.toChars, ident.toChars);
         }
         Expression e = semanticY(sc, 1);
         if (e && isDotOpDispatch(e))
@@ -10421,10 +10436,14 @@ extern (C++) final class CallExp : UnaExp
         if (f && f.isMacroDeclaration)
         {
             auto macroAst = ctfeInterpret();
-            auto result = fromMacroAst(loc, sc, f.isMacroDeclaration, macroAst);
-            result.semantic(sc);
 
-            return result;
+            if (f.isMacroDeclaration.isAstMacro)
+                return macroAst;
+            else
+            {
+                auto result = fromMacroAst(loc, sc, f.isMacroDeclaration, macroAst);
+                return result.semantic(sc);
+            }
         }
 
         return combine(argprefix, this);

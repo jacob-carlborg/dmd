@@ -21,6 +21,7 @@ import core.stdc.stdio;
 
 import ddmd.aggregate;
 import ddmd.arraytypes;
+import ddmd.ast_macro;
 import ddmd.attrib;
 import ddmd.gluelayer;
 import ddmd.canthrow;
@@ -521,6 +522,18 @@ extern (C++) Statement toStatement(Dsymbol s)
                     a.push(s);
             }
             result = new CompoundStatement(tm.loc, a);
+        }
+
+        override void visit(MacroInvocation mi)
+        {
+            auto a = new Statements();
+            foreach (m; *mi.members)
+            {
+                auto s = toStatement(m);
+                if (s)
+                    a.push(s);
+            }
+            result = new CompoundStatement(mi.loc, a);
         }
 
         /* An actual declaration symbol will be converted to DeclarationExp

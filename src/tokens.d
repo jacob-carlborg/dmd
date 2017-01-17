@@ -304,6 +304,10 @@ enum TOK : int
     TOKvoidexp,
     TOKcantexp,
 
+
+    // 240
+    TOKast_macro_result_exp,
+
     TOKMAX,
 }
 
@@ -548,6 +552,7 @@ alias TOKpound = TOK.TOKpound;
 alias TOKinterval = TOK.TOKinterval;
 alias TOKvoidexp = TOK.TOKvoidexp;
 alias TOKcantexp = TOK.TOKcantexp;
+alias TOKast_macro_result_exp = TOK.TOKast_macro_result_exp;
 alias TOKMAX = TOK.TOKMAX;
 
 enum TOKwild = TOKinout;
@@ -832,6 +837,8 @@ extern (C++) struct Token
         TOKinterval: "interval",
         TOKvoidexp: "voidexp",
         TOKcantexp: "cantexp",
+
+        TOKast_macro_result_exp: "ast_macro_result_exp"
     ];
 
     static this()

@@ -26,11 +26,14 @@ import ddmd.dtemplate;
 import ddmd.dversion;
 import ddmd.expression;
 import ddmd.func;
+import ddmd.identifier;
 import ddmd.init;
 import ddmd.mtype;
 import ddmd.nspace;
 import ddmd.statement;
 import ddmd.staticassert;
+
+import ddmd.ast_macro;
 
 extern (C++) class Visitor
 {
@@ -487,6 +490,11 @@ extern (C++) class Visitor
     void visit(TemplateMixin s)
     {
         visit(cast(TemplateInstance)s);
+    }
+
+    void visit(MacroInvocation s)
+    {
+        visit(cast(ScopeDsymbol)s);
     }
 
     void visit(EnumDeclaration s)
@@ -1372,6 +1380,26 @@ extern (C++) class Visitor
     void visit(Parameter)
     {
         assert(0);
+    }
+
+    void visit(Identifier i)
+    {
+        assert(0);
+    }
+
+    void visit(AstMacroResultExp)
+    {
+        assert(0);
+    }
+
+    void visit(AstMacroResultInvocationExp e)
+    {
+        visit(cast(AstMacroResultExp) e);
+    }
+
+    void visit(AstMacroResultStatementExp e)
+    {
+        visit(cast(AstMacroResultExp) e);
     }
 }
 

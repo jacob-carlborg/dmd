@@ -16,6 +16,7 @@ import core.stdc.string;
 import ddmd.aggregate;
 import ddmd.aliasthis;
 import ddmd.arraytypes;
+import ddmd.ast_macro;
 import ddmd.attrib;
 import ddmd.complex;
 import ddmd.cond;
@@ -2974,6 +2975,11 @@ public:
         {
             s.accept(this);
         }
+    }
+
+    override void visit(AstMacroResultStatementExp e)
+    {
+        e.statement.accept(this);
     }
 }
 

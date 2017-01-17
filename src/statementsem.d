@@ -16,6 +16,7 @@ import ddmd.aggregate;
 import ddmd.aliasthis;
 import ddmd.arrayop;
 import ddmd.arraytypes;
+import ddmd.ast_macro;
 import ddmd.clone;
 import ddmd.cond;
 import ddmd.dcast;
@@ -92,6 +93,26 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             CommaExp.allow(s.exp);
 
             s.exp = s.exp.semantic(sc);
+
+            if (s.exp.op == TOKast_macro_result_exp)
+            {
+                auto macroResult = cast(AstMacroResultExp) s.exp;
+                macroResult.semantic(sc);
+
+                if (auto s2 = macroResult.isStatement)
+                {
+                    result = s2.statement;
+                    printf("isStatement\n");
+                }
+                else if (auto i = macroResult.isInvocation){printf("isInvocation\n");
+                    result = i.invocation.toStatement;}
+                else{printf("neither\n");
+                    assert(0);}
+
+                printf("visit(ExpStatement) compound=%d %s\n", result.isCompoundStatement, result.toChars);
+                return;
+            }
+
             s.exp = resolveProperties(sc, s.exp);
             s.exp = s.exp.addDtorHook(sc);
             if (checkNonAssignmentArrayOp(s.exp))

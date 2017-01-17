@@ -20,6 +20,7 @@ import ddmd.root.rootobject;
 import ddmd.root.stringtable;
 import ddmd.tokens;
 import ddmd.utf;
+import ddmd.visitor;
 
 /***********************************************************
  */
@@ -209,5 +210,10 @@ public:
     static void initTable()
     {
         stringtable._init(28000);
+    }
+
+    void accept(Visitor v)
+    {
+        v.visit(this);
     }
 }

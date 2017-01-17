@@ -380,30 +380,81 @@ Msgtable[] msgtable =
     { "initializer" },
     { "statement" },
     { "symbol" },
+    //{ "type "},
+    { "util" },
 
-    // Macro AST nodes
+    // Macro AST node types
     { "AstNode" },
+    { "Symbol" },
+    { "ScopeSymbol" },
+    { "EnumDeclaration" },
     { "VarDeclaration" },
+    { "FunctionDeclaration" },
+    { "Expression" },
     { "AddExp" },
     { "AssignExpression" },
     { "BlitExpression" },
+    { "CallExpression" },
     { "DeclarationExpression" },
     { "IntegerExp" },
+    { "StringExpression" },
     { "SymbolExpression" },
     { "VariableExpression" },
     { "ExpressionInitializer" },
     { "CompoundStatement" },
     { "ExpressionStatement" },
+    { "ImportStatement"},
+    { "Statement" },
     { "BasicType" },
+    { "ArrayType" },
+    { "EnumType" },
+    { "FunctionType" },
+    { "PointerType" },
+    { "TupleType" },
+    { "Parameter" },
+
+    // Macro AST enums
+    { "TypeKind" },
+    { "VariadicType" },
+    { "Linkage" },
+
+    // Macro AST TypeKind members
+    { "enum_" },
+    { "int32" },
+    { "void_" },
+    { "char_" },
 
     // Macro AST fields
+    { "arguments" },
     { "nodeType" },
     { "left" },
     { "right" },
     { "value" },
     { "ident" },
     { "type" },
-    { "typeKind" }
+    { "typeKind" },
+    { "variable" },
+    { "memberType" },
+    { "functionDeclaration" },
+    { "body_" },
+    { "next" },
+    { "variadicType" },
+    { "linkage" },
+    { "statements" },
+
+    /// Macro AST Linkage members
+    { "default_" },
+    { "d" },
+    { "c" },
+    { "cpp" },
+    { "windows" },
+    { "pascal" },
+    { "objectiveC" },
+
+    /// Macro AST VariadicType members
+    { "nonVariadic" },
+    { "untyped" },
+    { "typed" }
 ];
 
 
