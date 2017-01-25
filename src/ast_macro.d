@@ -20,6 +20,7 @@ debug
 
 import ddmd.root.array;
 
+import ddmd.aggregate;
 import ddmd.arraytypes;
 import ddmd.ctfeexpr;
 import ddmd.dclass;
@@ -46,11 +47,10 @@ void toMacroArguments(Loc loc, Scope* sc, Expressions* macroArgs, Expressions* a
     foreach (i, arg ; *args)
     {
         arg = arg.semantic(sc);
-
-        if (arg)
-            printAst(arg);
-
         auto result = toMacroAst(loc, arg, true);
+
+        // printAst(result);
+        // println(result.toChars.fromStringz);
 
         if (result)
             (*macroArgs)[i] = result;
@@ -79,14 +79,16 @@ Expression toMacroAst(T)(Loc loc, T exp, bool topLevel = false)
         {
             assert(0, format("visit method not implemented for '%s' of type " ~
                 "'%s' op=%s", exp.toChars.fromStringz,
-                exp.type.toChars.fromStringz, exp.op));
+                exp.type ? exp.type.toChars.fromStringz : "<unknown>", exp.op));
         }
 
         override void visit(AddExp exp)
         {
             auto left = toMacroAst(loc, exp.e1);
             auto right = toMacroAst(loc, exp.e2);
-            auto ctorArgs = createCtorArgs(left, right);
+            auto type = toMacroAst(exp.type);
+
+            auto ctorArgs = createCtorArgs(type, left, right);
             result = createNewExp(macroAst.types.addExp, ctorArgs);
         }
 
@@ -141,8 +143,10 @@ Expression toMacroAst(T)(Loc loc, T exp, bool topLevel = false)
                 }
             }
 
+            auto type = toMacroAst(exp.type);
             auto right = toMacroAst(loc, exp.e2);
-            auto ctorArgs = createCtorArgs(left, right);
+
+            auto ctorArgs = createCtorArgs(type, left, right);
 
             result = createNewExp(macroAst.types.blitExpression, ctorArgs);
 
@@ -152,28 +156,31 @@ Expression toMacroAst(T)(Loc loc, T exp, bool topLevel = false)
 
         override void visit(CallExp exp)
         {
+            auto type = toMacroAst(exp.type);
             auto decl = toMacroAst(exp.f);
             auto e1 = toMacroAst(exp.e1);
 
             auto arrayType = macroAst.types.expression.arrayOf;
             auto arguments = toArrayLiteral(exp.arguments, arrayType);
 
-            auto ctorArgs = createCtorArgs(e1, decl, arguments);
+            auto ctorArgs = createCtorArgs(type, e1, decl, arguments);
 
             result = createNewExp(macroAst.types.callExpression, ctorArgs);
         }
 
         override void visit(DeclarationExp exp)
         {
+            auto type = toMacroAst(exp.type);
             auto decl = toMacroAst(loc, exp.declaration);
-            auto ctorArgs = createCtorArgs(decl);
+            auto ctorArgs = createCtorArgs(type, decl);
 
             result = createNewExp(macroAst.types.declarationExpression, ctorArgs);
         }
 
         override void visit(IntegerExp exp)
         {
-            auto ctorArgs = createCtorArgs(exp);
+            auto type = toMacroAst(exp.type);
+            auto ctorArgs = createCtorArgs(type, exp);
             result = createNewExp(macroAst.types.integerExp, ctorArgs);
         }
 
@@ -181,10 +188,21 @@ Expression toMacroAst(T)(Loc loc, T exp, bool topLevel = false)
         {
             if (topLevel)
             {
-                auto body_ = toMacroAst(loc, exp.fd.fbody);
-                auto ctorArgs = createCtorArgs(body_);
+                auto type = toMacroAst(exp.type);
+                assert(exp.fd);
+                auto decl = toMacroAst(exp.fd);assert(decl && decl.op != TOKnull);
 
-                result = createNewExp(macroAst.types.compoundStatement, ctorArgs);
+                auto ctorArgs = createCtorArgs(type, decl);
+                result = createNewExp(macroAst.types.functionExpression, ctorArgs);
+
+                /*auto body_ = exp.fd.fbody.isCompoundStatement;
+                assert(body_);
+
+                auto arrayType = macroAst.types.statement.arrayOf;
+                auto statements = toArrayLiteral(body_.statements, arrayType);
+                auto ctorArgs = createCtorArgs(statements);
+
+                result = createNewExp(macroAst.types.compoundStatement, ctorArgs);*/
             }
             else
                 assert(0);
@@ -197,14 +215,16 @@ Expression toMacroAst(T)(Loc loc, T exp, bool topLevel = false)
 
         override void visit(StringExp exp)
         {
-            auto ctorArgs = createCtorArgs(exp);
+            auto type = toMacroAst(exp.type);
+            auto ctorArgs = createCtorArgs(type, exp);
             result = createNewExp(macroAst.types.stringExpression, ctorArgs);
         }
 
         override void visit(VarExp exp)
         {
+            auto type = toMacroAst(exp.type);
             auto decl = toMacroAst(loc, exp.var);
-            auto ctorArgs = createCtorArgs(decl);
+            auto ctorArgs = createCtorArgs(type, decl);
 
             result = createNewExp(macroAst.types.variableExpression, ctorArgs);
         }
@@ -236,7 +256,13 @@ Expression toMacroAst(T)(Loc loc, T exp, bool topLevel = false)
 
         override void visit(FuncLiteralDeclaration fd)
         {
-            (cast(FuncDeclaration) fd).accept(this);
+            auto type = toMacroAst(fd.type);
+            auto functionType = macroAst.nodeTypes[fd.tok];
+            auto body_ = toMacroAst(fd.fbody);
+            auto ident = toMacroAst(fd.ident);
+
+            auto ctorArgs = createCtorArgs(type, functionType, body_, ident);
+            result = createNewExp(macroAst.types.functionLiteralDeclaration, ctorArgs);
         }
 
         override void visit(VarDeclaration var)
@@ -299,15 +325,18 @@ Expression toMacroAst(T)(Loc loc, T exp, bool topLevel = false)
         override void visit(TypeBasic t)
         {
             auto exp = macroAst.typeKinds[t.ty];
-            auto ctorArgs = createCtorArgs(exp);
+            auto deco = new StringExp(loc, t.deco);
+            auto ctorArgs = createCtorArgs(exp, deco);
 
             result = createNewExp(macroAst.types.basicType, ctorArgs);
         }
 
         override void visit(TypeArray t)
         {
+            auto ty = macroAst.typeKinds[t.ty];
+            auto deco = new StringExp(loc, t.deco);
             auto next = toMacroAst(t.next);
-            auto ctorArgs = createCtorArgs(next);
+            auto ctorArgs = createCtorArgs(ty, deco, next);
 
             result = createNewExp(macroAst.types.arrayType, ctorArgs);
         }
@@ -315,13 +344,15 @@ Expression toMacroAst(T)(Loc loc, T exp, bool topLevel = false)
         override void visit(TypeEnum t)
         {
             auto decl = toMacroAst(t.sym);
-            auto ctorArgs = createCtorArgs(decl);
+            auto deco = new StringExp(loc, t.deco);
+            auto ctorArgs = createCtorArgs(deco, decl);
 
             result = createNewExp(macroAst.types.enumType, ctorArgs);
         }
 
         override void visit(TypeFunction t)
         {
+            auto deco = new StringExp(loc, t.deco);
             auto arrayType = macroAst.types.parameter.arrayOf;
             auto parameters = toArrayLiteral(t.parameters, arrayType);
 
@@ -329,24 +360,26 @@ Expression toMacroAst(T)(Loc loc, T exp, bool topLevel = false)
             auto variadic = macroAst.variadicTypes[t.varargs];
             auto linkage = macroAst.linkages[t.linkage];
 
-            auto ctorArgs = createCtorArgs(parameters, returnType, variadic, linkage);
+            auto ctorArgs = createCtorArgs(deco, parameters, returnType, variadic, linkage);
             result = createNewExp(macroAst.types.functionType, ctorArgs);
         }
 
         override void visit(TypePointer t)
         {
+            auto deco = new StringExp(loc, t.deco);
             auto next = toMacroAst(t.next);
-            auto ctorArgs = createCtorArgs(next);
+            auto ctorArgs = createCtorArgs(deco, next);
 
             result = createNewExp(macroAst.types.pointerType, ctorArgs);
         }
 
         override void visit(TypeTuple t)
         {
+            auto deco = new StringExp(loc, t.deco);
             auto arrayType = macroAst.types.parameter.arrayOf;
             auto arguments = toArrayLiteral(t.arguments, arrayType);
 
-            auto ctorArgs = createCtorArgs(arguments);
+            auto ctorArgs = createCtorArgs(deco, arguments);
             result = createNewExp(macroAst.types.tupleType, ctorArgs);
         }
 
@@ -388,6 +421,8 @@ Expression toMacroAst(T)(Loc loc, T exp, bool topLevel = false)
         Expressions* createCtorArgs(Expression[] exps...)
         in
         {
+            assert(exps.length > 0, "At least one argument have to be given");
+
             foreach (e ; exps)
                 assert(e);
         }
@@ -403,7 +438,10 @@ Expression toMacroAst(T)(Loc loc, T exp, bool topLevel = false)
 
         NewExp createNewExp(Type type, Expressions* args)
         {
-            return new NewExp(loc, null, null, type, args);
+            auto newExp = new NewExp(loc, null, null, type, args);
+            newExp.type = type;
+
+            return newExp;
         }
 
         ArrayLiteralExp toArrayLiteral(T)(Array!(T)* array, Type type)
@@ -500,8 +538,14 @@ Expression fromMacroAst(Loc loc, Scope* sc, MacroDeclaration md, Expression exp)
         case TOKnull:
             return null;
 
+        case TOKstring:
+            return exp;
+
+        case TOKint64:
+            return exp;
+
         default:
-        println(exp.op);
+            println("fromMacroAst ", exp.op);
             md.error(loc, "needs to return a value of type %s, not (%s) of type %s",
                 macroAst.types.astNode.toChars(), exp.toChars(),
                 exp.type.toPrettyChars());
@@ -701,6 +745,11 @@ extern (C++) final class AstMacroResultStatementExp : AstMacroResultExp
     {
         return this;
     }
+
+    override const(char)* toChars()
+    {
+        return statement.toChars;
+    }
 }
 
 private:
@@ -716,7 +765,7 @@ struct MacroAst
         Module statement;
         Module symbol;
         Module type;
-            Module util;
+        Module util;
 
         void init()
         {
@@ -751,6 +800,7 @@ struct MacroAst
 
         Type enumDeclaration;
         Type functionDeclaration;
+        Type functionLiteralDeclaration;
         Type variableDeclaration;
 
         Type expression;
@@ -759,6 +809,7 @@ struct MacroAst
         Type blitExpression;
         Type callExpression;
         Type declarationExpression;
+        Type functionExpression;
         Type integerExp;
         Type stringExpression;
         Type symbolExpression;
@@ -768,6 +819,7 @@ struct MacroAst
 
         Type compoundStatement;
         Type expressionStatement;
+        Type foreachStatement;
         Type importStatement;
         Type statement;
 
@@ -789,6 +841,7 @@ struct MacroAst
             enumDeclaration = findType(loc, modules.declaration, Id.EnumDeclaration);
             variableDeclaration = findType(loc, modules.declaration, Id.VarDeclaration);
             functionDeclaration = findType(loc, modules.declaration, Id.FunctionDeclaration);
+            functionLiteralDeclaration = findType(loc, modules.declaration, Id.FunctionLiteralDeclaration);
 
             expression = findType(loc, modules.expression, Id.Expression);
             addExp = findType(loc, modules.expression, Id.AddExp);
@@ -796,6 +849,7 @@ struct MacroAst
             blitExpression = findType(loc, modules.expression, Id.BlitExpression);
             callExpression = findType(loc, modules.expression, Id.CallExpression);
             declarationExpression = findType(loc, modules.expression, Id.DeclarationExpression);
+            functionExpression = findType(loc, modules.expression, Id.FunctionExpression);
             integerExp = findType(loc, modules.expression, Id.IntegerExp);
             stringExpression = findType(loc, modules.expression, Id.StringExpression);
             symbolExpression = findType(loc, modules.expression, Id.SymbolExpression);
@@ -805,6 +859,7 @@ struct MacroAst
 
             compoundStatement = findType(loc, modules.statement, Id.CompoundStatement);
             expressionStatement = findType(loc, modules.statement, Id.ExpressionStatement);
+            foreachStatement = findType(loc, modules.statement, Id.ForeachStatement);
             importStatement = findType(loc, modules.statement, Id.ImportStatement);
             statement = findType(loc, modules.statement, Id.Statement);
 
@@ -956,6 +1011,7 @@ struct MacroAst
 
     Modules modules;
     Types types;
+    EnumProjection!TOK nodeTypes;
     EnumProjection!TY typeKinds;
     EnumProjection!int variadicTypes;
     EnumProjection!LINK linkages;
@@ -965,6 +1021,12 @@ struct MacroAst
     {
         modules.init();
         types.init(loc, modules);
+
+        nodeTypes = EnumProjection!TOK(loc, modules.astNode, Id.NodeType, [
+            TOKdeclaration: Id.delegateExpression,
+            TOKfunction: Id.functionExpression,
+            TOKreserved: Id.reserved
+        ]);
 
         typeKinds = EnumProjection!TY(loc, modules.type, Id.TypeKind, [
             Tenum: Id.enum_,
@@ -1001,14 +1063,17 @@ struct FromMacroAst
         NodeType.addExp: &visitAddExp,
         NodeType.arrayLiteralExpression: &visitArrayLiteralExpression,
         NodeType.callExpression: &visitCallExpression,
+        NodeType.functionExpression: &visitFunctionExpression,
         NodeType.integerExp: &visitIntegerExp,
         NodeType.stringExpression: &visitStringExpression,
         NodeType.functionDeclaration: &visitFunctionDeclaration,
+        NodeType.functionLiteralDeclaration: &visitFunctionLiteralDeclaration,
         NodeType.varDeclaration: &visitVarDeclaration,
         NodeType.basicType: &visitBasicType,
         NodeType.functionType: &visitFunctionType,
         NodeType.variableExpression: &visitVariableExpression,
         NodeType.enumType: &visitEnumType,
+        NodeType.pointerType: &visitPointerType,
         NodeType.enumDeclaration: &visitEnumDeclaration,
         NodeType.compoundStatement: &visitCompoundStatement,
         NodeType.expressionStatement: &visitExpressionStatement
@@ -1017,12 +1082,15 @@ struct FromMacroAst
     // This enum needs to match the one in the core.ast.ast_node
     private enum NodeType : short
     {
+        reserved,
+
         astNode,
 
         declaration,
         enumDeclaration,
         varDeclaration,
         functionDeclaration,
+        functionLiteralDeclaration,
 
         expression,
         arrayLiteralExpression,
@@ -1032,6 +1100,8 @@ struct FromMacroAst
         blitExpression,
         callExpression,
         declarationExpression,
+        delegateExpression,
+        functionExpression,
         integerExp,
         stringExpression,
         symbolExpression,
@@ -1047,6 +1117,7 @@ struct FromMacroAst
         statement,
         compoundStatement,
         expressionStatement,
+        foreachStatement,
         importStatement,
 
         type,
@@ -1101,7 +1172,10 @@ private:
         e1 = fromMacroAst(e1);
         e2 = fromMacroAst(e2);
 
-        return new AddExp(loc, e1, e2);
+        auto addExp = new AddExp(loc, e1, e2);
+        addExp.type = extractType(exp);
+
+        return addExp;
     }
 
     Expression visitArrayLiteralExpression(ClassReferenceExp exp)
@@ -1124,14 +1198,27 @@ private:
 
         auto callExp = new CallExp(loc, expression, arguments);
         callExp.f = decl;
+        callExp.type = extractType(exp);
 
         return callExp;
+    }
+
+    Expression visitFunctionExpression(ClassReferenceExp exp)
+    {
+        auto declarationExp = getFieldValue(exp, Id.declaration);
+        auto declaration = expToDeclaration(fromMacroAst(declarationExp));
+
+        auto returnType = Type.tvoid;
+        auto functionType = new TypeFunction(new Parameters(), Type.tvoid, 0, LINKd);
+
+        return new FuncExp(loc, declaration);
     }
 
     Expression visitIntegerExp(ClassReferenceExp exp)
     {
         auto value = getFieldValue(exp, Id.value);
         assert(isValidIntegerExp(value));
+        value.type = extractType(exp);
 
         return value;
     }
@@ -1140,6 +1227,7 @@ private:
     {
         auto value = getFieldValue(exp, Id.value);
         assert(value.op == TOKstring);
+        value.type = extractType(exp);
 
         return value;
     }
@@ -1158,9 +1246,22 @@ private:
         auto body_ = expToStatement(a);
 
         auto func = new FuncDeclaration(loc, loc, ident, STCundefined, type);
+        func.fbody = body_;
         func.linkage = (cast(TypeFunction) type).linkage;
+        func.parent = md.parent;
 
         return new DeclarationExp(loc, func);
+    }
+
+    Expression visitFunctionLiteralDeclaration(ClassReferenceExp exp)
+    {
+        auto func = expToFuncDeclaration(visitFunctionDeclaration(exp));
+        auto funcLiteralDecl = new FuncLiteralDeclaration(loc, loc, func.type, TOKreserved, null, func.ident);
+        funcLiteralDecl.fbody = func.fbody;
+        funcLiteralDecl.linkage = func.linkage;
+        funcLiteralDecl.parent = func.parent;
+
+        return new DeclarationExp(loc, funcLiteralDecl);
     }
 
     Expression visitVarDeclaration(ClassReferenceExp exp)
@@ -1198,9 +1299,11 @@ private:
         {
             case Tint32: type = Type.tint32; break;
             case Tvoid: type = Type.tvoid; break;
+            case Tchar: type = Type.tchar; break;
             default:
+                println(cast(ENUMTY) ty);
                 printf("visitTypeBasic ty=%d\n", ty);
-                assert(0);
+                assert(0, "Unhandled basic type case: ");
         }
 
         return new TypeExp(loc, type);
@@ -1215,12 +1318,13 @@ private:
         auto returnType = expToType(fromMacroAst(returnTypeExp));
 
         auto variadicTypeExp = getFieldValue(exp, Id.variadicType);
-        auto variadicType = 0;//cast(int) expToUlong(fromMacroAst(variadicTypeExp));
+        auto variadicType = cast(int) expToUlong(fromMacroAst(variadicTypeExp));
 
         auto linkageExp = getFieldValue(exp, Id.linkage);
         auto linkage = expToLINK(linkageExp);
 
         auto type = new TypeFunction(params, returnType, variadicType, linkage);
+        type.deco = extractDeco(exp);
 
         return new TypeExp(loc, type);
     }
@@ -1230,7 +1334,10 @@ private:
         auto varExp = getFieldValue(exp, Id.variable);
         auto var = expToDeclaration(fromMacroAst(varExp));
 
-        return new VarExp(loc, var);
+        auto v = new VarExp(loc, var);
+        v.type = extractType(exp);
+
+        return v;
     }
 
     Expression visitEnumType(ClassReferenceExp exp)
@@ -1239,6 +1346,16 @@ private:
         decl = fromMacroAst(decl);
         println(decl.op);
         assert(0);
+    }
+
+    Expression visitPointerType(ClassReferenceExp exp)
+    {
+        auto typeExp = getFieldValue(exp, Id.next);
+        auto nextType = expToType(fromMacroAst(typeExp));
+        auto type = new TypePointer(nextType);
+        type.deco = extractDeco(exp);
+
+        return new TypeExp(loc, type);
     }
 
     Expression visitEnumDeclaration(ClassReferenceExp exp)
@@ -1305,7 +1422,7 @@ private:
             return buildDispatcher(*func)(exp);
         else
         {
-            printf("Could not find the node type '%s' in the dispatch table\n", to!string(nodeType).toStringz);
+            printf("Could not find the node type '%s' in the dispatch table\n", enumValueToString(nodeType).toStringz);
             assert(0);
         }
     }
@@ -1389,13 +1506,16 @@ private:
             case TOKuns128:
                 return true;
             default:
-                println(exp.op);
+                println("isValidIntegerExp ", exp.op);
                 return false;
         }
     }
 
     Identifier expToIdent(Expression exp)
     {
+        if (exp is null || exp.op == TOKnull)
+            return null;
+
         assert(exp.op == TOKstring);
         auto stringExp = cast(StringExp) exp;
         auto name = stringExp.peekSlice();
@@ -1430,7 +1550,9 @@ private:
     Type expToType(Expression exp)
     {
         assert(exp.op == TOKtype);
-        return exp.type;
+        auto type = exp.type;
+
+        return type;
     }
 
     Initializer expToInit(Expression exp)
@@ -1453,15 +1575,41 @@ private:
         return s.statement;
     }
 
+    Parameter expToParameter(Expression exp)
+    {
+        assert(exp.op == TOKclassreference);
+
+        auto classExp = cast(ClassReferenceExp) exp;
+
+        auto storageClassExp = getFieldValue(classExp, Id.storageClass);
+        auto storageClass = expToUlong(fromMacroAst(storageClassExp));
+
+        auto typeExp = getFieldValue(classExp, Id.type);
+        auto type = expToType(fromMacroAst(typeExp));
+
+        auto identExp = getFieldValue(classExp, Id.identifier);
+        auto ident = expToIdent(fromMacroAst(identExp));
+
+        auto defaultArg = getFieldValue(classExp, Id.defaultArgument);
+
+        if (defaultArg.op == TOKnull)
+            defaultArg = null;
+
+        return new Parameter(storageClass, type, ident, defaultArg);
+    }
+
     Parameters* expToParameters(Expression exp)
     {
-        assert(exp.op == TOKnull);
-        return null;
+        if (exp.op == TOKnull)
+            return null;
+
+        return expToArray!(Parameter, expToParameter)(exp);
     }
 
     Declaration expToDeclaration(Expression exp)
     {
-        assert(exp.op == TOKdeclaration);
+        assert(exp);
+        assert(exp.op == TOKdeclaration, "exp.op: " ~ enumValueToString(exp.op));
         auto declExp = cast(DeclarationExp) exp;
 
         auto decl = declExp.declaration.isDeclaration;
@@ -1482,16 +1630,2153 @@ private:
 
     Array!(T)* expToArray(T, alias func)(Expression exp)
     {
+        auto array = new Array!(T);
+
+        if (!exp)
+            return array;
+
         assert(exp.op == TOKarrayliteral);
         auto arrayLiterlExp = cast(ArrayLiteralExp) exp;
 
-        auto array = new Array!(T);
         array.reserve(arrayLiterlExp.elements.dim);
 
         foreach (e ; *arrayLiterlExp.elements)
             array.push(func(e));
 
         return array;
+    }
+
+    Type extractType(ClassReferenceExp exp)
+    {
+        auto typeExp = getFieldValue(exp, Id.type);
+        return expToType(fromMacroAst(typeExp));
+    }
+
+    char* extractDeco(Expression exp)
+    {
+        assert(exp.op == TOKclassreference, "exp.op: " ~ enumValueToString(exp.op));
+        auto classExp = cast(ClassReferenceExp) exp;
+
+        auto decoExp = getFieldValue(classExp, Id.deco);
+        assert(decoExp.op == TOKstring);
+
+        auto deco = cast(StringExp) decoExp;
+        return deco.toPtr;
+    }
+}
+
+template BaseType(A)
+{
+    static if (is(A P == super))
+        alias BaseType = P[0];
+    else
+        static assert(0, "argument is not a class or interface");
+}
+
+static string enumValueToString(T)(T value) if (is(T == enum))
+{
+    foreach (name ; __traits(allMembers, T))
+    {
+        if (__traits(getMember, T, name) == value)
+            return name;
+    }
+
+    return null;
+}
+
+public void printAst(T)(T node)
+{
+    import core.stdc.stdarg;
+    import ddmd.root.outbuffer;
+
+    static const(char)[] escape(const(char)[] str)
+    {
+        size_t j;
+
+        static const(char)[] replace(const(char)[] s, size_t i, string replacement)
+        {
+            return s[0 .. i] ~ replacement ~ s[i + 1 .. $];
+        }
+
+        foreach (i, e ; str)
+        {
+            if (e == '\n')
+                str = replace(str, i, "\\n");
+
+            else if (e == '"')
+                str = replace(str, i, "\\\"");
+        }
+
+        return str;
+    }
+
+    extern (C++) final scope class AstPrintVisitor : Visitor
+    {
+        OutBuffer* buffer;
+        int level;
+        enum indentation = 2;
+        bool shouldIdent;
+
+        alias visit = Visitor.visit;
+
+        this(OutBuffer* buffer)
+        {
+            this.buffer = buffer;
+        }
+
+        override void visit(Identifier ident)
+        {
+            appendf("Identifier(%s)", ident.toChars);
+        }
+
+        override void visit(Statement s)
+        {
+            assert(0, "No implementation for the statement: " ~ astTypeName(s));
+        }
+
+        void visitBase(Statement)
+        {
+            node("Statement");
+        }
+
+        override void visit(CompoundStatement s)
+        {
+            node(s, {
+                fields("statements", s.statements);
+            });
+        }
+
+        void visitBase(CompoundStatement s)
+        {
+            visit(s);
+        }
+
+        override void visit(ExpStatement s)
+        {
+            node(s, {
+                fields("exp", s.exp);
+            });
+        }
+
+        override void visit(ForeachStatement s)
+        {
+            node(s, {
+               fields(
+                   "op", s.op,
+                   "parameters", s.parameters,
+                   "aggr", s.aggr,
+                   "_body", s._body
+                );
+            });
+        }
+
+        override void visit(ReturnStatement s)
+        {
+            node(s, {
+                fields("exp", s.exp);
+            });
+        }
+
+        override void visit(Expression e)
+        {
+            assert(0, "No implementation for the expression: " ~ astTypeName(e));
+        }
+
+        void visitBase(Expression e)
+        {
+            node("Expression", {
+                fields(
+                    "type", e.type,
+                    "op", e.op,
+                );
+            });
+        }
+
+        override void visit(ArrayLiteralExp e)
+        {
+            node(e, {
+                fields("elements", e.elements);
+            });
+        }
+
+        override void visit(AssignExp e)
+        {
+            node(e);
+        }
+
+        override void visit(AstMacroResultStatementExp e)
+        {
+            e.statement.accept(this);
+        }
+
+        override void visit(BinExp e)
+        {
+            node(e, {
+                fields(
+                    "e1", e.e1,
+                    "e2", e.e2
+                );
+            });
+        }
+
+        void visitBase(BinExp e)
+        {
+            visit(e);
+        }
+
+        override void visit(CallExp e)
+        {
+            node(e, {
+                fields(
+                    "arguments", e.arguments,
+                    "f", e.f
+                );
+            });
+        }
+
+        override void visit(ClassReferenceExp e)
+        {
+            node(e);
+        }
+
+        override void visit(FuncExp e)
+        {
+            node(e, {
+                fields("fd", e.fd);
+            });
+        }
+
+        override void visit(IdentifierExp e)
+        {
+            node(e, {
+                fields("ident", e.ident);
+            });
+        }
+
+        override void visit(IntegerExp e)
+        {
+            node(e, {
+                fields("value", e.toInteger);
+            });
+        }
+
+        override void visit(NewExp e)
+        {
+            node(e, {
+                fields(
+                    "thisexp", e.thisexp,
+                    "newargs", e.newargs,
+                    "newtype", e.newtype,
+                    "arguments", e.arguments
+                );
+            });
+        }
+
+        override void visit(NullExp e)
+        {
+            node(e);
+        }
+
+        override void visit(StringExp e)
+        {
+            node(e, {
+                fields("string", `"` ~ escape(e.peekSlice) ~ `"`);
+            });
+        }
+
+        override void visit(SymbolExp e)
+        {
+            node(e, {
+                fields("var", e.var);
+            });
+        }
+
+        void visitBase(SymbolExp e)
+        {
+            visit(e);
+        }
+
+        override void visit(ThisExp e)
+        {
+            node(e, {
+                fields("var", e.var);
+            });
+        }
+
+        override void visit(UnaExp e)
+        {
+            node(e, {
+                fields(
+                    "expression", e.e1
+                );
+            });
+        }
+
+        void visitBase(UnaExp e)
+        {
+            visit(e);
+        }
+
+        override void visit(VarExp e)
+        {
+            node(e);
+        }
+
+        override void visit(Dsymbol s)
+        {
+            assert(0, "No implementation for the symbol: " ~ astTypeName(s));
+        }
+
+        void visitBase(Dsymbol s)
+        {
+            node("Dsymbol", {
+                fields("ident", s.ident);
+            });
+        }
+
+        override void visit(ScopeDsymbol s)
+        {
+            node(s, {
+                // fields("members", s.members);
+            });
+        }
+
+        void visitBase(ScopeDsymbol s)
+        {
+            visit(s);
+        }
+
+        override void visit(Declaration d)
+        {
+            node(d, {
+                fields("type", d.type);
+            });
+        }
+
+        void visitBase(Declaration d)
+        {
+            visit(d);
+        }
+
+        override void visit(AggregateDeclaration ad)
+        {
+            node(ad, {
+                //fields("type", ad.type);
+            });
+        }
+
+        void visitBase(AggregateDeclaration ad)
+        {
+            visit(ad);
+        }
+
+        override void visit(AttribDeclaration ad)
+        {
+            node(ad);
+        }
+
+        void visitBase(AttribDeclaration ad)
+        {
+            visit(ad);
+        }
+
+        override void visit(ClassDeclaration cd)
+        {
+            node(cd);
+        }
+
+        override void visit(EnumDeclaration ed)
+        {
+            node(ed, {
+                // fields("memtype", ed.memtype);
+            });
+        }
+
+        override void visit(FuncDeclaration fd)
+        {
+            node(fd, {
+                fields(
+                    "fbody", fd.fbody,
+                    "fes", fd.fes,
+                );
+            });
+        }
+
+        void visitBase(FuncDeclaration fd)
+        {
+            visit(fd);
+        }
+
+        override void visit(FuncLiteralDeclaration fd)
+        {
+            node(fd, {
+                fields("tok", fd.tok);
+            });
+        }
+
+        override void visit(ProtDeclaration pd)
+        {
+            node(pd);
+        }
+
+        override void visit(Type t)
+        {
+            assert(0, "No implementation for the type: "  ~ astTypeName(t));
+        }
+
+        void visitBase(Type t)
+        {
+            // auto name = enumValueToString(cast(ENUMTY) t.ty);
+            node("Type", {
+                fields(
+                    "ty", t.ty,
+                    "deco", t.deco
+                );
+            });
+            // appendf("Type(ty: %.*s)", name.length, name.ptr);
+        }
+
+        override void visit(TypeBasic t)
+        {
+            node(t, {
+                fields("dstring", t.dstring);
+            });
+        }
+
+        override void visit(TypeClass t)
+        {
+            node(t, {
+                fields("sym", t.sym);
+            });
+        }
+
+        override void visit(TypeEnum t)
+        {
+            node(t, {
+                fields("sym", t.sym);
+            });
+        }
+
+        override void visit(TypeFunction t)
+        {
+            node(t, {
+                fields(
+                    "parameters", t.parameters,
+                    "varargs", t.varargs,
+                    "linkage", t.linkage,
+                );
+            });
+        }
+
+        override void visit(TypeIdentifier t)
+        {
+            node(t, {
+                fields("ident", t.ident);
+            });
+        }
+
+        override void visit(TypeNext t)
+        {
+            node(t, {
+                fields("next", t.next);
+            });
+        }
+
+        void visitBase(TypeNext t)
+        {
+            visit(t);
+        }
+
+        override void visit(TypePointer t)
+        {
+            node(t);
+        }
+
+        override void visit(Parameter p)
+        {
+            node("Parameter", {
+                fields(
+                    "storageClass", p.storageClass,
+                    "type", p.type,
+                    "ident", p.ident,
+                    "defaultArg", p.defaultArg
+                );
+            });
+        }
+
+        override void visit(TypeQualified t)
+        {
+            node(t);
+        }
+
+        void visitBase(TypeQualified t)
+        {
+            visit(t);
+        }
+
+        extern (D):
+
+        void node(T)(T astNode, void delegate() block = null)
+        {
+            node(T.stringof, {
+                visitBase(cast(BaseType!T) astNode);
+
+                if (block)
+                {
+                    append(',');
+                    newline();
+                    block();
+                }
+            });
+        }
+
+        void node(string name, void delegate() block = null)
+        {
+            append(name);
+
+            if (block)
+                bracket(block);
+            else
+                append(" {}");
+        }
+
+        void fields(Fields...)(Fields fields) if (Fields.length % 2 == 0)
+        {
+            foreach (i, f ; fields)
+            {
+                static if (is(typeof(f) == string))
+                {
+                    if (i != 0)
+                    {
+                        append(',');
+                        newline();
+                    }
+
+                    static if (is(Fields[i + 1] == enum))
+                        fieldWithEnumValue(f, fields[i + 1]);
+                    else
+                        field(f, fields[i + 1]);
+                }
+                else
+                    continue;
+            }
+        }
+
+        void field(Node)(string name, Node node)
+        {
+            append(name);
+            append(": ");
+
+            if (node)
+                node.accept(this);
+            else
+            {
+                enum nodeName = Node.stringof;
+                appendf("%.*s(null)", nodeName.length, nodeName.ptr);
+            }
+        }
+
+        void field(T : int)(string name, T value)
+        {
+            append(name);
+            append(": ");
+            appendf("%d", value);
+        }
+
+        void field(T : ulong)(string name, T value)
+        {
+            append(name);
+            append(": ");
+            appendf("%d", value);
+        }
+
+        void field(T : const(char)*)(string name, T value)
+        {
+            append(name);
+            append(": ");
+            appendf("%s", value);
+        }
+
+        void field(T : const(char)[])(string name, T value)
+        {
+            append(name);
+            append(": ");
+            appendf("%.*s", value.length, value.ptr);
+        }
+
+        void field(T : string)(string name, T value)
+        {
+            field(name, cast(const(char)[]) value);
+        }
+
+        void fieldWithEnumValue(T)(string name, T value) if (is(T == enum))
+        {
+            field(name, enumValueToString(value));
+        }
+
+        void field(T : E*, E)(string name, T array)
+        {
+            append(name);
+            append(":");
+
+            if (!array)
+                append(" null");
+
+            else if (array.dim == 0)
+                append(" []");
+
+            else
+            {
+                bracket('[', ']', {
+                    foreach (i, e ; *array)
+                    {
+                        if (i != 0)
+                        {
+                            append(',');
+                            newline();
+                        }
+
+                        e.accept(this);
+                    }
+                });
+            }
+        }
+
+        void bracket(void delegate() block)
+        {
+            bracket('{', '}', block);
+        }
+
+        void bracket(char s, char e, void delegate() block)
+        {
+            newline();
+            append(s);
+            newline();
+            indent(block);
+            newline();
+            append(e);
+        }
+
+        void indent(void delegate() block)
+        {
+            level++;
+
+            scope (exit)
+                level--;
+
+            block();
+        }
+
+        void indent()
+        {
+            if (shouldIdent)
+            {
+                foreach (_ ; 0 .. level * indentation)
+                    buffer.writeByte(' ');
+            }
+        }
+
+        void newline()
+        {
+            buffer.writenl();
+            shouldIdent = true;
+        }
+
+        void append(string str)
+        {
+            indent();
+            buffer.writestring(str);
+            shouldIdent = false;
+        }
+
+        void append(char c)
+        {
+            indent();
+            buffer.writeByte(c);
+            shouldIdent = false;
+        }
+
+        extern (C++) void appendf(const(char)* format, ...) /*nothrow*/
+        {
+            indent();
+            va_list ap;
+            va_start(ap, format);
+            buffer.vprintf(format, ap);
+            va_end(ap);
+            shouldIdent = false;
+        }
+    }
+
+    OutBuffer buffer;
+
+    scope visitor = new AstPrintVisitor(&buffer);
+    node.accept(visitor);
+
+    printf("%s\n", buffer.extractString);
+}
+
+import ddmd.attrib;
+import ddmd.aliasthis;
+import ddmd.aggregate;
+import ddmd.complex;
+import ddmd.cond;
+import ddmd.ctfeexpr;
+import ddmd.dclass;
+import ddmd.declaration;
+import ddmd.denum;
+import ddmd.dimport;
+import ddmd.declaration;
+import ddmd.dstruct;
+import ddmd.dsymbol;
+import ddmd.dtemplate;
+import ddmd.dversion;
+import ddmd.expression;
+import ddmd.func;
+import ddmd.denum;
+import ddmd.dimport;
+import ddmd.dmodule;
+import ddmd.mtype;
+import ddmd.typinf;
+import ddmd.identifier;
+import ddmd.init;
+import ddmd.globals;
+import ddmd.doc;
+import ddmd.root.rootobject;
+import ddmd.statement;
+import ddmd.staticassert;
+import ddmd.nspace;
+import ddmd.visitor;
+
+string astTypeName(RootObject node)
+{
+    if (auto s = cast(Statement) node)
+        return astTypeName(s);
+
+    final switch(node.dyncast())
+    {
+        case DYNCAST_OBJECT:
+            return "RootObject";
+        case DYNCAST_EXPRESSION:
+            return astTypeName(cast(Expression)node);
+        case DYNCAST_DSYMBOL:
+            return astTypeName(cast(Dsymbol)node);
+        case DYNCAST_TYPE:
+            return astTypeName(cast(Type)node);
+        case DYNCAST_IDENTIFIER:
+            return astTypeName(cast(Identifier)node);
+        case DYNCAST_TUPLE:
+            return astTypeName(cast(Tuple)node);
+        case DYNCAST_PARAMETER:
+            return astTypeName(cast(Parameter)node);
+        // case DYNCAST_STATEMENT:
+        //     return astTypeName(cast(Statement)node);
+    }
+}
+
+string astTypeName(Dsymbol node)
+{
+    scope tsv = new AstTypeNameVisitor;
+    node.accept(tsv);
+    return tsv.typeName;
+}
+
+string astTypeName(Expression node)
+{
+    scope tsv = new AstTypeNameVisitor;
+    node.accept(tsv);
+    return tsv.typeName;
+}
+
+string astTypeName(Type node)
+{
+    scope tsv = new AstTypeNameVisitor;
+    node.accept(tsv);
+    return tsv.typeName;
+}
+
+string astTypeName(Identifier node)
+{
+    return "Identifier";
+}
+
+string astTypeName(Initializer node)
+{
+    scope tsv = new AstTypeNameVisitor;
+    node.accept(tsv);
+    return tsv.typeName;
+}
+
+string astTypeName(Condition node)
+{
+    scope tsv = new AstTypeNameVisitor;
+    node.accept(tsv);
+    return tsv.typeName;
+}
+
+string astTypeName(TemplateParameter node)
+{
+    scope tsv = new AstTypeNameVisitor;
+    node.accept(tsv);
+    return tsv.typeName;
+}
+
+string astTypeName(Statement node)
+{
+    scope tsv = new AstTypeNameVisitor;
+    node.accept(tsv);
+    return tsv.typeName;
+}
+
+extern(C++) final class AstTypeNameVisitor : Visitor
+{
+    alias visit = super.visit;
+public :
+    string typeName;
+
+
+    void visit(RootObject node)
+    {
+        typeName = "RootObject";
+    }
+
+    override void visit(Condition node)
+    {
+        typeName = "Condition";
+    }
+
+    override void visit(Identifier node)
+    {
+        typeName = "Identifier";
+    }
+
+    override void visit(Statement node)
+    {
+        typeName = "Statement";
+    }
+
+    void visit(Catch node)
+    {
+        typeName = "Catch";
+    }
+
+    override void visit(Dsymbol node)
+    {
+        typeName = "Dsymbol";
+    }
+
+    void visit(DsymbolTable node)
+    {
+        typeName = "DsymbolTable";
+    }
+
+    void visit(Tuple node)
+    {
+        typeName = "Tuple";
+    }
+
+    override void visit(Initializer node)
+    {
+        typeName = "Initializer";
+    }
+
+    override void visit(Type node)
+    {
+        typeName = "Type";
+    }
+
+    override void visit(Parameter node)
+    {
+        typeName = "Parameter";
+    }
+
+    override void visit(Expression node)
+    {
+        typeName = "Expression";
+    }
+
+    override void visit(AliasThis node)
+    {
+        typeName = "AliasThis";
+    }
+
+    override void visit(DVCondition node)
+    {
+        typeName = "DVCondition";
+    }
+
+    override void visit(StaticIfCondition node)
+    {
+        typeName = "StaticIfCondition";
+    }
+
+    override void visit(ClassReferenceExp node)
+    {
+        typeName = "ClassReferenceExp";
+    }
+
+    override void visit(VoidInitExp node)
+    {
+        typeName = "VoidInitExp";
+    }
+
+    override void visit(ThrownExceptionExp node)
+    {
+        typeName = "ThrownExceptionExp";
+    }
+
+    void visit(CTFEExp node)
+    {
+        typeName = "CTFEExp";
+    }
+
+    override void visit(Import node)
+    {
+        typeName = "Import";
+    }
+
+    override void visit(DebugSymbol node)
+    {
+        typeName = "DebugSymbol";
+    }
+
+    override void visit(VersionSymbol node)
+    {
+        typeName = "VersionSymbol";
+    }
+
+    override void visit(StaticAssert node)
+    {
+        typeName = "StaticAssert";
+    }
+
+    override void visit(ErrorStatement node)
+    {
+        typeName = "ErrorStatement";
+    }
+
+    override void visit(PeelStatement node)
+    {
+        typeName = "PeelStatement";
+    }
+
+    override void visit(ExpStatement node)
+    {
+        typeName = "ExpStatement";
+    }
+
+    override void visit(CompileStatement node)
+    {
+        typeName = "CompileStatement";
+    }
+
+    override void visit(CompoundStatement node)
+    {
+        typeName = "CompoundStatement";
+    }
+
+    override void visit(UnrolledLoopStatement node)
+    {
+        typeName = "UnrolledLoopStatement";
+    }
+
+    override void visit(ScopeStatement node)
+    {
+        typeName = "ScopeStatement";
+    }
+
+    override void visit(WhileStatement node)
+    {
+        typeName = "WhileStatement";
+    }
+
+    override void visit(DoStatement node)
+    {
+        typeName = "DoStatement";
+    }
+
+    override void visit(ForStatement node)
+    {
+        typeName = "ForStatement";
+    }
+
+    override void visit(ForeachStatement node)
+    {
+        typeName = "ForeachStatement";
+    }
+
+    override void visit(ForeachRangeStatement node)
+    {
+        typeName = "ForeachRangeStatement";
+    }
+
+    override void visit(IfStatement node)
+    {
+        typeName = "IfStatement";
+    }
+
+    override void visit(ConditionalStatement node)
+    {
+        typeName = "ConditionalStatement";
+    }
+
+    override void visit(PragmaStatement node)
+    {
+        typeName = "PragmaStatement";
+    }
+
+    override void visit(StaticAssertStatement node)
+    {
+        typeName = "StaticAssertStatement";
+    }
+
+    override void visit(SwitchStatement node)
+    {
+        typeName = "SwitchStatement";
+    }
+
+    override void visit(CaseStatement node)
+    {
+        typeName = "CaseStatement";
+    }
+
+    override void visit(CaseRangeStatement node)
+    {
+        typeName = "CaseRangeStatement";
+    }
+
+    override void visit(DefaultStatement node)
+    {
+        typeName = "DefaultStatement";
+    }
+
+    override void visit(GotoDefaultStatement node)
+    {
+        typeName = "GotoDefaultStatement";
+    }
+
+    override void visit(GotoCaseStatement node)
+    {
+        typeName = "GotoCaseStatement";
+    }
+
+    override void visit(SwitchErrorStatement node)
+    {
+        typeName = "SwitchErrorStatement";
+    }
+
+    override void visit(ReturnStatement node)
+    {
+        typeName = "ReturnStatement";
+    }
+
+    override void visit(BreakStatement node)
+    {
+        typeName = "BreakStatement";
+    }
+
+    override void visit(ContinueStatement node)
+    {
+        typeName = "ContinueStatement";
+    }
+
+    override void visit(SynchronizedStatement node)
+    {
+        typeName = "SynchronizedStatement";
+    }
+
+    override void visit(WithStatement node)
+    {
+        typeName = "WithStatement";
+    }
+
+    override void visit(TryCatchStatement node)
+    {
+        typeName = "TryCatchStatement";
+    }
+
+    override void visit(TryFinallyStatement node)
+    {
+        typeName = "TryFinallyStatement";
+    }
+
+    override void visit(OnScopeStatement node)
+    {
+        typeName = "OnScopeStatement";
+    }
+
+    override void visit(ThrowStatement node)
+    {
+        typeName = "ThrowStatement";
+    }
+
+    override void visit(DebugStatement node)
+    {
+        typeName = "DebugStatement";
+    }
+
+    override void visit(GotoStatement node)
+    {
+        typeName = "GotoStatement";
+    }
+
+    override void visit(LabelStatement node)
+    {
+        typeName = "LabelStatement";
+    }
+
+    override void visit(LabelDsymbol node)
+    {
+        typeName = "LabelDsymbol";
+    }
+
+    override void visit(AsmStatement node)
+    {
+        typeName = "AsmStatement";
+    }
+
+    override void visit(ImportStatement node)
+    {
+        typeName = "ImportStatement";
+    }
+
+    override void visit(AttribDeclaration node)
+    {
+        typeName = "AttribDeclaration";
+    }
+
+    override void visit(Declaration node)
+    {
+        typeName = "Declaration";
+    }
+
+    override void visit(ScopeDsymbol node)
+    {
+        typeName = "ScopeDsymbol";
+    }
+
+    override void visit(OverloadSet node)
+    {
+        typeName = "OverloadSet";
+    }
+
+    void visit(TypeDeduced node)
+    {
+        typeName = "TypeDeduced";
+    }
+
+    override void visit(VoidInitializer node)
+    {
+        typeName = "VoidInitializer";
+    }
+
+    override void visit(ErrorInitializer node)
+    {
+        typeName = "ErrorInitializer";
+    }
+
+    override void visit(StructInitializer node)
+    {
+        typeName = "StructInitializer";
+    }
+
+    override void visit(ArrayInitializer node)
+    {
+        typeName = "ArrayInitializer";
+    }
+
+    override void visit(ExpInitializer node)
+    {
+        typeName = "ExpInitializer";
+    }
+
+    override void visit(TypeError node)
+    {
+        typeName = "TypeError";
+    }
+
+    override void visit(TypeNext node)
+    {
+        typeName = "TypeNext";
+    }
+
+    override void visit(TypeBasic node)
+    {
+        typeName = "TypeBasic";
+    }
+
+    override void visit(TypeVector node)
+    {
+        typeName = "TypeVector";
+    }
+
+    override void visit(TypeQualified node)
+    {
+        typeName = "TypeQualified";
+    }
+
+    override void visit(TypeStruct node)
+    {
+        typeName = "TypeStruct";
+    }
+
+    override void visit(TypeEnum node)
+    {
+        typeName = "TypeEnum";
+    }
+
+    override void visit(TypeClass node)
+    {
+        typeName = "TypeClass";
+    }
+
+    override void visit(TypeTuple node)
+    {
+        typeName = "TypeTuple";
+    }
+
+    override void visit(TypeNull node)
+    {
+        typeName = "TypeNull";
+    }
+
+    override void visit(IntegerExp node)
+    {
+        typeName = "IntegerExp";
+    }
+
+    override void visit(ErrorExp node)
+    {
+        typeName = "ErrorExp";
+    }
+
+    override void visit(RealExp node)
+    {
+        typeName = "RealExp";
+    }
+
+    override void visit(ComplexExp node)
+    {
+        typeName = "ComplexExp";
+    }
+
+    override void visit(IdentifierExp node)
+    {
+        typeName = "IdentifierExp";
+    }
+
+    override void visit(DsymbolExp node)
+    {
+        typeName = "DsymbolExp";
+    }
+
+    override void visit(ThisExp node)
+    {
+        typeName = "ThisExp";
+    }
+
+    override void visit(NullExp node)
+    {
+        typeName = "NullExp";
+    }
+
+    override void visit(StringExp node)
+    {
+        typeName = "StringExp";
+    }
+
+    override void visit(TupleExp node)
+    {
+        typeName = "TupleExp";
+    }
+
+    override void visit(ArrayLiteralExp node)
+    {
+        typeName = "ArrayLiteralExp";
+    }
+
+    override void visit(AssocArrayLiteralExp node)
+    {
+        typeName = "AssocArrayLiteralExp";
+    }
+
+    override void visit(StructLiteralExp node)
+    {
+        typeName = "StructLiteralExp";
+    }
+
+    override void visit(TypeExp node)
+    {
+        typeName = "TypeExp";
+    }
+
+    override void visit(ScopeExp node)
+    {
+        typeName = "ScopeExp";
+    }
+
+    override void visit(TemplateExp node)
+    {
+        typeName = "TemplateExp";
+    }
+
+    override void visit(NewExp node)
+    {
+        typeName = "NewExp";
+    }
+
+    override void visit(NewAnonClassExp node)
+    {
+        typeName = "NewAnonClassExp";
+    }
+
+    override void visit(SymbolExp node)
+    {
+        typeName = "SymbolExp";
+    }
+
+    override void visit(OverExp node)
+    {
+        typeName = "OverExp";
+    }
+
+    override void visit(FuncExp node)
+    {
+        typeName = "FuncExp";
+    }
+
+    override void visit(DeclarationExp node)
+    {
+        typeName = "DeclarationExp";
+    }
+
+    override void visit(TypeidExp node)
+    {
+        typeName = "TypeidExp";
+    }
+
+    override void visit(TraitsExp node)
+    {
+        typeName = "TraitsExp";
+    }
+
+    override void visit(HaltExp node)
+    {
+        typeName = "HaltExp";
+    }
+
+    override void visit(IsExp node)
+    {
+        typeName = "IsExp";
+    }
+
+    override void visit(UnaExp node)
+    {
+        typeName = "UnaExp";
+    }
+
+    override void visit(BinExp node)
+    {
+        typeName = "BinExp";
+    }
+
+    override void visit(IntervalExp node)
+    {
+        typeName = "IntervalExp";
+    }
+
+    override void visit(DefaultInitExp node)
+    {
+        typeName = "DefaultInitExp";
+    }
+
+    override void visit(DebugCondition node)
+    {
+        typeName = "DebugCondition";
+    }
+
+    override void visit(VersionCondition node)
+    {
+        typeName = "VersionCondition";
+    }
+
+    override void visit(EnumDeclaration node)
+    {
+        typeName = "EnumDeclaration";
+    }
+
+    override void visit(Package node)
+    {
+        typeName = "Package";
+    }
+
+    override void visit(Nspace node)
+    {
+        typeName = "Nspace";
+    }
+
+    override void visit(AggregateDeclaration node)
+    {
+        typeName = "AggregateDeclaration";
+    }
+
+    override void visit(DtorExpStatement node)
+    {
+        typeName = "DtorExpStatement";
+    }
+
+    override void visit(CompoundDeclarationStatement node)
+    {
+        typeName = "CompoundDeclarationStatement";
+    }
+
+    override void visit(CompoundAsmStatement node)
+    {
+        typeName = "CompoundAsmStatement";
+    }
+
+    override void visit(StorageClassDeclaration node)
+    {
+        typeName = "StorageClassDeclaration";
+    }
+
+    override void visit(LinkDeclaration node)
+    {
+        typeName = "LinkDeclaration";
+    }
+
+    override void visit(CPPMangleDeclaration node)
+    {
+        typeName = "CPPMangleDeclaration";
+    }
+
+    override void visit(ProtDeclaration node)
+    {
+        typeName = "ProtDeclaration";
+    }
+
+    override void visit(AlignDeclaration node)
+    {
+        typeName = "AlignDeclaration";
+    }
+
+    override void visit(AnonDeclaration node)
+    {
+        typeName = "AnonDeclaration";
+    }
+
+    override void visit(PragmaDeclaration node)
+    {
+        typeName = "PragmaDeclaration";
+    }
+
+    override void visit(ConditionalDeclaration node)
+    {
+        typeName = "ConditionalDeclaration";
+    }
+
+    override void visit(CompileDeclaration node)
+    {
+        typeName = "CompileDeclaration";
+    }
+
+    override void visit(UserAttributeDeclaration node)
+    {
+        typeName = "UserAttributeDeclaration";
+    }
+
+    override void visit(TupleDeclaration node)
+    {
+        typeName = "TupleDeclaration";
+    }
+
+    override void visit(AliasDeclaration node)
+    {
+        typeName = "AliasDeclaration";
+    }
+
+    override void visit(OverDeclaration node)
+    {
+        typeName = "OverDeclaration";
+    }
+
+    override void visit(VarDeclaration node)
+    {
+        typeName = "VarDeclaration";
+    }
+
+    override void visit(SymbolDeclaration node)
+    {
+        typeName = "SymbolDeclaration";
+    }
+
+    override void visit(WithScopeSymbol node)
+    {
+        typeName = "WithScopeSymbol";
+    }
+
+    override void visit(ArrayScopeSymbol node)
+    {
+        typeName = "ArrayScopeSymbol";
+    }
+
+    override void visit(TemplateDeclaration node)
+    {
+        typeName = "TemplateDeclaration";
+    }
+
+    override void visit(TemplateInstance node)
+    {
+        typeName = "TemplateInstance";
+    }
+
+    override void visit(FuncDeclaration node)
+    {
+        typeName = "FuncDeclaration";
+    }
+
+    override void visit(TypeArray node)
+    {
+        typeName = "TypeArray";
+    }
+
+    override void visit(TypePointer node)
+    {
+        typeName = "TypePointer";
+    }
+
+    override void visit(TypeReference node)
+    {
+        typeName = "TypeReference";
+    }
+
+    override void visit(TypeFunction node)
+    {
+        typeName = "TypeFunction";
+    }
+
+    override void visit(TypeDelegate node)
+    {
+        typeName = "TypeDelegate";
+    }
+
+    override void visit(TypeIdentifier node)
+    {
+        typeName = "TypeIdentifier";
+    }
+
+    override void visit(TypeInstance node)
+    {
+        typeName = "TypeInstance";
+    }
+
+    override void visit(TypeTypeof node)
+    {
+        typeName = "TypeTypeof";
+    }
+
+    override void visit(TypeReturn node)
+    {
+        typeName = "TypeReturn";
+    }
+
+    override void visit(TypeSlice node)
+    {
+        typeName = "TypeSlice";
+    }
+
+    override void visit(DollarExp node)
+    {
+        typeName = "DollarExp";
+    }
+
+    override void visit(SuperExp node)
+    {
+        typeName = "SuperExp";
+    }
+
+    override void visit(SymOffExp node)
+    {
+        typeName = "SymOffExp";
+    }
+
+    override void visit(VarExp node)
+    {
+        typeName = "VarExp";
+    }
+
+    override void visit(BinAssignExp node)
+    {
+        typeName = "BinAssignExp";
+    }
+
+    override void visit(CompileExp node)
+    {
+        typeName = "CompileExp";
+    }
+
+    override void visit(ImportExp node)
+    {
+        typeName = "ImportExp";
+    }
+
+    override void visit(AssertExp node)
+    {
+        typeName = "AssertExp";
+    }
+
+    override void visit(DotIdExp node)
+    {
+        typeName = "DotIdExp";
+    }
+
+    override void visit(DotTemplateExp node)
+    {
+        typeName = "DotTemplateExp";
+    }
+
+    override void visit(DotVarExp node)
+    {
+        typeName = "DotVarExp";
+    }
+
+    override void visit(DotTemplateInstanceExp node)
+    {
+        typeName = "DotTemplateInstanceExp";
+    }
+
+    override void visit(DelegateExp node)
+    {
+        typeName = "DelegateExp";
+    }
+
+    override void visit(DotTypeExp node)
+    {
+        typeName = "DotTypeExp";
+    }
+
+    override void visit(CallExp node)
+    {
+        typeName = "CallExp";
+    }
+
+    override void visit(AddrExp node)
+    {
+        typeName = "AddrExp";
+    }
+
+    override void visit(PtrExp node)
+    {
+        typeName = "PtrExp";
+    }
+
+    override void visit(NegExp node)
+    {
+        typeName = "NegExp";
+    }
+
+    override void visit(UAddExp node)
+    {
+        typeName = "UAddExp";
+    }
+
+    override void visit(ComExp node)
+    {
+        typeName = "ComExp";
+    }
+
+    override void visit(NotExp node)
+    {
+        typeName = "NotExp";
+    }
+
+    override void visit(DeleteExp node)
+    {
+        typeName = "DeleteExp";
+    }
+
+    override void visit(CastExp node)
+    {
+        typeName = "CastExp";
+    }
+
+    override void visit(VectorExp node)
+    {
+        typeName = "VectorExp";
+    }
+
+    override void visit(SliceExp node)
+    {
+        typeName = "SliceExp";
+    }
+
+    override void visit(ArrayLengthExp node)
+    {
+        typeName = "ArrayLengthExp";
+    }
+
+    override void visit(ArrayExp node)
+    {
+        typeName = "ArrayExp";
+    }
+
+    override void visit(DotExp node)
+    {
+        typeName = "DotExp";
+    }
+
+    override void visit(CommaExp node)
+    {
+        typeName = "CommaExp";
+    }
+
+    override void visit(DelegatePtrExp node)
+    {
+        typeName = "DelegatePtrExp";
+    }
+
+    override void visit(DelegateFuncptrExp node)
+    {
+        typeName = "DelegateFuncptrExp";
+    }
+
+    override void visit(IndexExp node)
+    {
+        typeName = "IndexExp";
+    }
+
+    override void visit(PostExp node)
+    {
+        typeName = "PostExp";
+    }
+
+    override void visit(PreExp node)
+    {
+        typeName = "PreExp";
+    }
+
+    override void visit(AssignExp node)
+    {
+        typeName = "AssignExp";
+    }
+
+    override void visit(AddExp node)
+    {
+        typeName = "AddExp";
+    }
+
+    override void visit(MinExp node)
+    {
+        typeName = "MinExp";
+    }
+
+    override void visit(CatExp node)
+    {
+        typeName = "CatExp";
+    }
+
+    override void visit(MulExp node)
+    {
+        typeName = "MulExp";
+    }
+
+    override void visit(DivExp node)
+    {
+        typeName = "DivExp";
+    }
+
+    override void visit(ModExp node)
+    {
+        typeName = "ModExp";
+    }
+
+    override void visit(PowExp node)
+    {
+        typeName = "PowExp";
+    }
+
+    override void visit(ShlExp node)
+    {
+        typeName = "ShlExp";
+    }
+
+    override void visit(ShrExp node)
+    {
+        typeName = "ShrExp";
+    }
+
+    override void visit(UshrExp node)
+    {
+        typeName = "UshrExp";
+    }
+
+    override void visit(AndExp node)
+    {
+        typeName = "AndExp";
+    }
+
+    override void visit(OrExp node)
+    {
+        typeName = "OrExp";
+    }
+
+    override void visit(XorExp node)
+    {
+        typeName = "XorExp";
+    }
+
+    override void visit(OrOrExp node)
+    {
+        typeName = "OrOrExp";
+    }
+
+    override void visit(AndAndExp node)
+    {
+        typeName = "AndAndExp";
+    }
+
+    override void visit(CmpExp node)
+    {
+        typeName = "CmpExp";
+    }
+
+    override void visit(InExp node)
+    {
+        typeName = "InExp";
+    }
+
+    override void visit(RemoveExp node)
+    {
+        typeName = "RemoveExp";
+    }
+
+    override void visit(EqualExp node)
+    {
+        typeName = "EqualExp";
+    }
+
+    override void visit(IdentityExp node)
+    {
+        typeName = "IdentityExp";
+    }
+
+    override void visit(CondExp node)
+    {
+        typeName = "CondExp";
+    }
+
+    override void visit(FileInitExp node)
+    {
+        typeName = "FileInitExp";
+    }
+
+    override void visit(LineInitExp node)
+    {
+        typeName = "LineInitExp";
+    }
+
+    override void visit(ModuleInitExp node)
+    {
+        typeName = "ModuleInitExp";
+    }
+
+    override void visit(FuncInitExp node)
+    {
+        typeName = "FuncInitExp";
+    }
+
+    override void visit(PrettyFuncInitExp node)
+    {
+        typeName = "PrettyFuncInitExp";
+    }
+
+    override void visit(ClassDeclaration node)
+    {
+        typeName = "ClassDeclaration";
+    }
+
+    override void visit(EnumMember node)
+    {
+        typeName = "EnumMember";
+    }
+
+    override void visit(Module node)
+    {
+        typeName = "Module";
+    }
+
+    override void visit(StructDeclaration node)
+    {
+        typeName = "StructDeclaration";
+    }
+
+    override void visit(DeprecatedDeclaration node)
+    {
+        typeName = "DeprecatedDeclaration";
+    }
+
+    override void visit(StaticIfDeclaration node)
+    {
+        typeName = "StaticIfDeclaration";
+    }
+
+    override void visit(TypeInfoDeclaration node)
+    {
+        typeName = "TypeInfoDeclaration";
+    }
+
+    override void visit(ThisDeclaration node)
+    {
+        typeName = "ThisDeclaration";
+    }
+
+    override void visit(TemplateMixin node)
+    {
+        typeName = "TemplateMixin";
+    }
+
+    override void visit(FuncAliasDeclaration node)
+    {
+        typeName = "FuncAliasDeclaration";
+    }
+
+    override void visit(FuncLiteralDeclaration node)
+    {
+        typeName = "FuncLiteralDeclaration";
+    }
+
+    override void visit(CtorDeclaration node)
+    {
+        typeName = "CtorDeclaration";
+    }
+
+    override void visit(PostBlitDeclaration node)
+    {
+        typeName = "PostBlitDeclaration";
+    }
+
+    override void visit(DtorDeclaration node)
+    {
+        typeName = "DtorDeclaration";
+    }
+
+    override void visit(StaticCtorDeclaration node)
+    {
+        typeName = "StaticCtorDeclaration";
+    }
+
+    override void visit(StaticDtorDeclaration node)
+    {
+        typeName = "StaticDtorDeclaration";
+    }
+
+    override void visit(InvariantDeclaration node)
+    {
+        typeName = "InvariantDeclaration";
+    }
+
+    override void visit(UnitTestDeclaration node)
+    {
+        typeName = "UnitTestDeclaration";
+    }
+
+    override void visit(NewDeclaration node)
+    {
+        typeName = "NewDeclaration";
+    }
+
+    override void visit(DeleteDeclaration node)
+    {
+        typeName = "DeleteDeclaration";
+    }
+
+    override void visit(TypeSArray node)
+    {
+        typeName = "TypeSArray";
+    }
+
+    override void visit(TypeDArray node)
+    {
+        typeName = "TypeDArray";
+    }
+
+    override void visit(TypeAArray node)
+    {
+        typeName = "TypeAArray";
+    }
+
+    override void visit(ConstructExp node)
+    {
+        typeName = "ConstructExp";
+    }
+
+    override void visit(BlitExp node)
+    {
+        typeName = "BlitExp";
+    }
+
+    override void visit(AddAssignExp node)
+    {
+        typeName = "AddAssignExp";
+    }
+
+    override void visit(MinAssignExp node)
+    {
+        typeName = "MinAssignExp";
+    }
+
+    override void visit(MulAssignExp node)
+    {
+        typeName = "MulAssignExp";
+    }
+
+    override void visit(DivAssignExp node)
+    {
+        typeName = "DivAssignExp";
+    }
+
+    override void visit(ModAssignExp node)
+    {
+        typeName = "ModAssignExp";
+    }
+
+    override void visit(AndAssignExp node)
+    {
+        typeName = "AndAssignExp";
+    }
+
+    override void visit(OrAssignExp node)
+    {
+        typeName = "OrAssignExp";
+    }
+
+    override void visit(XorAssignExp node)
+    {
+        typeName = "XorAssignExp";
+    }
+
+    override void visit(PowAssignExp node)
+    {
+        typeName = "PowAssignExp";
+    }
+
+    override void visit(ShlAssignExp node)
+    {
+        typeName = "ShlAssignExp";
+    }
+
+    override void visit(ShrAssignExp node)
+    {
+        typeName = "ShrAssignExp";
+    }
+
+    override void visit(UshrAssignExp node)
+    {
+        typeName = "UshrAssignExp";
+    }
+
+    override void visit(CatAssignExp node)
+    {
+        typeName = "CatAssignExp";
+    }
+
+    override void visit(InterfaceDeclaration node)
+    {
+        typeName = "InterfaceDeclaration";
+    }
+
+    override void visit(UnionDeclaration node)
+    {
+        typeName = "UnionDeclaration";
+    }
+
+    override void visit(TypeInfoStructDeclaration node)
+    {
+        typeName = "TypeInfoStructDeclaration";
+    }
+
+    override void visit(TypeInfoClassDeclaration node)
+    {
+        typeName = "TypeInfoClassDeclaration";
+    }
+
+    override void visit(TypeInfoInterfaceDeclaration node)
+    {
+        typeName = "TypeInfoInterfaceDeclaration";
+    }
+
+    override void visit(TypeInfoPointerDeclaration node)
+    {
+        typeName = "TypeInfoPointerDeclaration";
+    }
+
+    override void visit(TypeInfoArrayDeclaration node)
+    {
+        typeName = "TypeInfoArrayDeclaration";
+    }
+
+    override void visit(TypeInfoStaticArrayDeclaration node)
+    {
+        typeName = "TypeInfoStaticArrayDeclaration";
+    }
+
+    override void visit(TypeInfoAssociativeArrayDeclaration node)
+    {
+        typeName = "TypeInfoAssociativeArrayDeclaration";
+    }
+
+    override void visit(TypeInfoEnumDeclaration node)
+    {
+        typeName = "TypeInfoEnumDeclaration";
+    }
+
+    override void visit(TypeInfoFunctionDeclaration node)
+    {
+        typeName = "TypeInfoFunctionDeclaration";
+    }
+
+    override void visit(TypeInfoDelegateDeclaration node)
+    {
+        typeName = "TypeInfoDelegateDeclaration";
+    }
+
+    override void visit(TypeInfoTupleDeclaration node)
+    {
+        typeName = "TypeInfoTupleDeclaration";
+    }
+
+    override void visit(TypeInfoConstDeclaration node)
+    {
+        typeName = "TypeInfoConstDeclaration";
+    }
+
+    override void visit(TypeInfoInvariantDeclaration node)
+    {
+        typeName = "TypeInfoInvariantDeclaration";
+    }
+
+    override void visit(TypeInfoSharedDeclaration node)
+    {
+        typeName = "TypeInfoSharedDeclaration";
+    }
+
+    override void visit(TypeInfoWildDeclaration node)
+    {
+        typeName = "TypeInfoWildDeclaration";
+    }
+
+    override void visit(TypeInfoVectorDeclaration node)
+    {
+        typeName = "TypeInfoVectorDeclaration";
+    }
+
+    override void visit(SharedStaticCtorDeclaration node)
+    {
+        typeName = "SharedStaticCtorDeclaration";
+    }
+
+    override void visit(SharedStaticDtorDeclaration node)
+    {
+        typeName = "SharedStaticDtorDeclaration";
     }
 }
 

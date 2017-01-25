@@ -196,7 +196,7 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             if (t == Type.terror)
                 return;
             if (!e.type)
-            {
+            {assert(e.type);
                 e.error("%s is not an expression", e.toChars());
                 e.type = Type.terror;
             }

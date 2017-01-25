@@ -769,7 +769,7 @@ UnitTestDeclaration needsDeferredNested(FuncDeclaration fd)
 
 
 void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
-{
+{assert(fd.parent);
     ClassDeclaration cd = fd.parent.isClassDeclaration();
     //printf("FuncDeclaration.toObjFile(%p, %s.%s)\n", fd, fd.parent.toChars(), fd.toChars());
 
@@ -826,7 +826,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         fd.error("errors compiling the function");
         return;
     }
-    assert(fd.semanticRun == PASSsemantic3done);
+    assert(fd.semanticRun == PASSsemantic3done, fd.ident ? fd.ident.toString : "");
     assert(fd.ident != Id.empty);
 
     for (FuncDeclaration fd2 = fd; fd2; )

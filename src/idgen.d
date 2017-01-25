@@ -390,12 +390,14 @@ Msgtable[] msgtable =
     { "EnumDeclaration" },
     { "VarDeclaration" },
     { "FunctionDeclaration" },
+    { "FunctionLiteralDeclaration" },
     { "Expression" },
     { "AddExp" },
     { "AssignExpression" },
     { "BlitExpression" },
     { "CallExpression" },
     { "DeclarationExpression" },
+    { "FunctionExpression" },
     { "IntegerExp" },
     { "StringExpression" },
     { "SymbolExpression" },
@@ -403,6 +405,7 @@ Msgtable[] msgtable =
     { "ExpressionInitializer" },
     { "CompoundStatement" },
     { "ExpressionStatement" },
+    { "ForeachStatement" },
     { "ImportStatement"},
     { "Statement" },
     { "BasicType" },
@@ -414,9 +417,15 @@ Msgtable[] msgtable =
     { "Parameter" },
 
     // Macro AST enums
+    { "NodeType" },
     { "TypeKind" },
     { "VariadicType" },
     { "Linkage" },
+
+    /// Macro AST NodeType members
+    { "delegateExpression" },
+    { "functionExpression" },
+    { "reserved" },
 
     // Macro AST TypeKind members
     { "enum_" },
@@ -441,6 +450,9 @@ Msgtable[] msgtable =
     { "variadicType" },
     { "linkage" },
     { "statements" },
+    { "storageClass" },
+    { "defaultArgument" },
+    { "deco" },
 
     /// Macro AST Linkage members
     { "default_" },

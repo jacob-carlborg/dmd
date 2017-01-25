@@ -2856,7 +2856,7 @@ extern (C++) abstract class Expression : RootObject
     bool checkValue()
     {
         if (type && type.toBasetype().ty == Tvoid)
-        {
+        {assert(op != TOKast_macro_result_exp);
             error("expression %s is void and has no value", toChars());
             //print(); assert(0);
             if (!global.gag)
@@ -10324,6 +10324,9 @@ extern (C++) final class CallExp : UnaExp
             f = ve.var.isFuncDeclaration();
             assert(f);
 
+            // if (f.ident.toString == "ast" && arguments && arguments.dim > 0)
+            //     printAst((*arguments)[0]);
+
             if (f.isMacroDeclaration)
             {
                 if (arguments)
@@ -10442,7 +10445,10 @@ extern (C++) final class CallExp : UnaExp
             else
             {
                 auto result = fromMacroAst(loc, sc, f.isMacroDeclaration, macroAst);
-                return result.semantic(sc);
+                // printAst(result);
+                assert(result.op != TOKast_macro_result_exp);
+                auto a = result.semantic(sc);
+                return a;
             }
         }
 
