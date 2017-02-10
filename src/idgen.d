@@ -432,6 +432,7 @@ Msgtable[] msgtable =
     { "int32" },
     { "void_" },
     { "char_" },
+    // { "array" },
 
     // Macro AST fields
     { "arguments" },

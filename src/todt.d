@@ -577,7 +577,8 @@ extern (C++) void Expression_toDt(Expression e, DtBuilder dtb)
             assert(0);
         }
     }
-
+    // import ddmd.ast_macro;import std.stdio : println = writeln;
+    // println(e.astTypeName);
     scope v = new ExpToDt(dtb);
     e.accept(v);
 }

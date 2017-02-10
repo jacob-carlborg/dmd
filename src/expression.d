@@ -10324,8 +10324,8 @@ extern (C++) final class CallExp : UnaExp
             f = ve.var.isFuncDeclaration();
             assert(f);
 
-            // if (f.ident.toString == "ast" && arguments && arguments.dim > 0)
-            //     printAst((*arguments)[0]);
+            if (f.ident.toString == "foo2" && arguments && arguments.dim > 0)
+                printAst((*arguments)[0]);
 
             if (f.isMacroDeclaration)
             {

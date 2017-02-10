@@ -491,6 +491,7 @@ extern (C++) class FuncDeclaration : Declaration
 
     final extern (D) this(Loc loc, Loc endloc, Identifier id, StorageClass storage_class, Type type)
     {
+        if (id && id.toString == "ast" && !isMacroDeclaration) {Object o;o.toString;}//printf("FuncDeclaration(this) ident=%s address=0x%x macro=%d\n", id.toChars, this, isMacroDeclaration is null);
         super(id);
         objc = Objc_FuncDeclaration(this);
         //printf("FuncDeclaration(id = '%s', type = %p)\n", id.toChars(), type);
@@ -3993,6 +3994,19 @@ extern (C++) class MacroDeclaration : FuncDeclaration
     final extern (D) this(Loc loc, Loc endLoc, Identifier id, StorageClass storageClass, Type type)
     {
         super(loc, endLoc, id, storageClass, type);
+    }
+
+    override Dsymbol syntaxCopy(Dsymbol s)
+    {
+        // printf("MacroDeclaration::syntaxCopy('%s')\n", toChars());
+        MacroDeclaration m = s ? cast(MacroDeclaration)s : new MacroDeclaration(loc, endloc, ident, storage_class, type.syntaxCopy());
+        m.outId = outId;
+        m.frequire = frequire ? frequire.syntaxCopy() : null;
+        m.fensure = fensure ? fensure.syntaxCopy() : null;
+        m.fbody = fbody ? fbody.syntaxCopy() : null;
+        assert(!fthrows); // deprecated
+
+        return m;
     }
 
     override MacroDeclaration isMacroDeclaration()

@@ -48,6 +48,7 @@ void toMacroArguments(Loc loc, Scope* sc, Expressions* macroArgs, Expressions* a
     {
         arg = arg.semantic(sc);
         auto result = toMacroAst(loc, arg, true);
+        result.semantic(sc);
 
         // printAst(result);
         // println(result.toChars.fromStringz);
@@ -216,7 +217,12 @@ Expression toMacroAst(T)(Loc loc, T exp, bool topLevel = false)
         override void visit(StringExp exp)
         {
             auto type = toMacroAst(exp.type);
+
+            if (exp.type != Type.tstring)
+                exp.type = Type.tstring;
+
             auto ctorArgs = createCtorArgs(type, exp);
+
             result = createNewExp(macroAst.types.stringExpression, ctorArgs);
         }
 
@@ -438,10 +444,7 @@ Expression toMacroAst(T)(Loc loc, T exp, bool topLevel = false)
 
         NewExp createNewExp(Type type, Expressions* args)
         {
-            auto newExp = new NewExp(loc, null, null, type, args);
-            newExp.type = type;
-
-            return newExp;
+            return new NewExp(loc, null, null, type, args);
         }
 
         ArrayLiteralExp toArrayLiteral(T)(Array!(T)* array, Type type)
@@ -453,7 +456,6 @@ Expression toMacroAst(T)(Loc loc, T exp, bool topLevel = false)
                 expressions.push(toMacroAst(loc, (*array)[i]));
 
             auto exp = new ArrayLiteralExp(loc, expressions);
-            exp.type = type;
             exp.ownedByCtfe = OWNEDctfe;
 
             return exp;
@@ -479,7 +481,7 @@ Expression toMacroAst(T)(Loc loc, T exp, bool topLevel = false)
         macroAst.init(loc);
 
     scope v = new ToMacroAst(loc, topLevel);
-    assert(exp);
+    assert(exp, T.stringof);
     exp.accept(v);
     assert(v.result);
     return v.result;
@@ -752,7 +754,7 @@ extern (C++) final class AstMacroResultStatementExp : AstMacroResultExp
     }
 }
 
-private:
+
 
 struct MacroAst
 {
@@ -971,6 +973,8 @@ struct MacroAst
 
         DotIdExp opIndex(T key)
         {
+            if (key !in enumMap)
+                println(key);
             return enumMap[key];
         }
 
@@ -1032,7 +1036,8 @@ struct MacroAst
             Tenum: Id.enum_,
             Tint32: Id.int32,
             Tvoid: Id.void_,
-            Tchar: Id.char_
+            Tchar: Id.char_,
+            Tarray: Id.array
         ]);
 
         variadicTypes = EnumProjection!int(loc, modules.util, Id.VariadicType, [
@@ -1206,10 +1211,8 @@ private:
     Expression visitFunctionExpression(ClassReferenceExp exp)
     {
         auto declarationExp = getFieldValue(exp, Id.declaration);
+        assert(declarationExp.op != TOKnull);
         auto declaration = expToDeclaration(fromMacroAst(declarationExp));
-
-        auto returnType = Type.tvoid;
-        auto functionType = new TypeFunction(new Parameters(), Type.tvoid, 0, LINKd);
 
         return new FuncExp(loc, declaration);
     }
@@ -1566,7 +1569,7 @@ private:
         if (exp is null)
             return null;
 
-        assert(exp.op == TOKast_macro_result_exp);
+        assert(exp.op == TOKast_macro_result_exp, enumValueToString(exp.op));
         auto res = cast(AstMacroResultExp) exp;
 
         auto s = res.isStatement;
@@ -1836,7 +1839,9 @@ public void printAst(T)(T node)
 
         override void visit(ClassReferenceExp e)
         {
-            node(e);
+            node(e, {
+                fields("value", e.value);
+            });
         }
 
         override void visit(FuncExp e)
@@ -1867,7 +1872,8 @@ public void printAst(T)(T node)
                     "thisexp", e.thisexp,
                     "newargs", e.newargs,
                     "newtype", e.newtype,
-                    "arguments", e.arguments
+                    "arguments", e.arguments,
+                    "member", e.member
                 );
             });
         }
@@ -1881,6 +1887,17 @@ public void printAst(T)(T node)
         {
             node(e, {
                 fields("string", `"` ~ escape(e.peekSlice) ~ `"`);
+            });
+        }
+
+        override void visit(StructLiteralExp e)
+        {
+            node(e, {
+                fields(
+                    "sd", e.sd,
+                    "elements", e.elements,
+                    "type", e.type
+                );
             });
         }
 
@@ -1985,6 +2002,11 @@ public void printAst(T)(T node)
             node(cd);
         }
 
+        override void visit(CtorDeclaration cd)
+        {
+            node(cd);
+        }
+
         override void visit(EnumDeclaration ed)
         {
             node(ed, {
@@ -2034,6 +2056,21 @@ public void printAst(T)(T node)
                 );
             });
             // appendf("Type(ty: %.*s)", name.length, name.ptr);
+        }
+
+        override void visit(TypeArray t)
+        {
+            node(t);
+        }
+
+        void visitBase(TypeArray t)
+        {
+            visit(t);
+        }
+
+        override void visit(TypeDArray t)
+        {
+            node(t);
         }
 
         override void visit(TypeBasic t)

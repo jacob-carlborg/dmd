@@ -5311,7 +5311,7 @@ elem *toElem(Expression e, IRState *irs)
             result = el_ptr(toSymbol(e));
         }
     }
-
+    printf("***************** %s\n", e.toChars);
     scope v = new ToElemVisitor(irs);
     e.accept(v);
     return v.result;

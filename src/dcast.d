@@ -196,7 +196,22 @@ extern (C++) MATCH implicitConvTo(Expression e, Type t)
             if (t == Type.terror)
                 return;
             if (!e.type)
-            {assert(e.type);
+            {import std.string : toStringz;
+                import ddmd.ast_macro;printf("implicitConvTo e=%p\n", e);
+                if (e.op == TOKnew)
+                {
+                    auto a = cast(NewExp) e;
+                    if (a.newtype.ty == Tclass)
+                    {
+                        auto t = cast(TypeClass) a.newtype;
+                        auto cd = t.sym;
+                        printf("implicitConvTo 2 ident=%s newtype=%p e=%p e.op=%s\n", cd.ident.toChars, a.newtype, e, enumValueToString(e.op).toStringz);
+                    }
+                }
+
+
+
+                assert(e.type, astTypeName(e));
                 e.error("%s is not an expression", e.toChars());
                 e.type = Type.terror;
             }

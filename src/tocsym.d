@@ -715,6 +715,7 @@ Symbol* toSymbol(StructLiteralExp sle)
 
 Symbol* toSymbol(ClassReferenceExp cre)
 {
+    printf("cre.ident=%s\n", cre.originalClass.ident.toChars);
     if (cre.value.sym)
         return cre.value.sym;
     auto t = type_alloc(TYint);
