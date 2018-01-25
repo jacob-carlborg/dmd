@@ -59,7 +59,7 @@ extern (C++) final class ClassReferenceExp : Expression
 
     extern (D) this(Loc loc, StructLiteralExp lit, Type type)
     {
-        super(loc, TOK.classReference, __traits(classInstanceSize, ClassReferenceExp));
+        super(loc, TOK.classReference);
         assert(lit && lit.sd && lit.sd.isClassDeclaration());
         this.value = lit;
         this.type = type;
@@ -128,7 +128,7 @@ extern (C++) final class VoidInitExp : Expression
 
     extern (D) this(VarDeclaration var, Type type)
     {
-        super(var.loc, TOK.void_, __traits(classInstanceSize, VoidInitExp));
+        super(var.loc, TOK.void_);
         this.var = var;
         this.type = var.type;
     }
@@ -166,7 +166,7 @@ extern (C++) final class ThrownExceptionExp : Expression
 
     extern (D) this(Loc loc, ClassReferenceExp victim)
     {
-        super(loc, TOK.thrownException, __traits(classInstanceSize, ThrownExceptionExp));
+        super(loc, TOK.thrownException);
         this.thrown = victim;
         this.type = victim.type;
     }
@@ -203,7 +203,7 @@ extern (C++) final class CTFEExp : Expression
 {
     extern (D) this(TOK tok)
     {
-        super(Loc(), tok, __traits(classInstanceSize, CTFEExp));
+        super(Loc(), tok);
         type = Type.tvoid;
     }
 
