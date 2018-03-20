@@ -108,7 +108,7 @@ struct ObjcSelector
             for (size_t i = 0; i < dim; i++)
             {
                 Parameter arg = Parameter.getNth(arguments, i);
-                mangleToBuffer(arg.type, &buf);
+                mangleToBuffer(arg.type, &buf, false);
                 buf.writeByte(':');
             }
             pcount = dim;

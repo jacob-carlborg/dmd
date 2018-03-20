@@ -174,10 +174,12 @@ public:
     AA* types;
     AA* idents;
     OutBuffer* buf;
+    bool allowMangleOverride;
 
-    extern (D) this(OutBuffer* buf)
+    extern (D) this(OutBuffer* buf, bool allowMangleOverride = false)
     {
         this.buf = buf;
+        this.allowMangleOverride = allowMangleOverride;
     }
 
     /**
@@ -268,7 +270,10 @@ public:
 
     final void mangleType(Type t)
     {
-        if (t.mangleOverride)
+        // if (t.mangleOverride){assert(false);}
+        // if (t.mangleOverride){assert(false);}
+            // printf("mangleOverride=%s\n", t.mangleOverride);
+        if (allowMangleOverride && t.mangleOverride)
             buf.writestring(t.mangleOverride);
         else if (!backrefType(t))
             t.accept(this);
@@ -1106,15 +1111,18 @@ extern (C++) const(char)* mangleExact(FuncDeclaration fd)
     return fd.mangleString;
 }
 
-extern (C++) void mangleToBuffer(Type t, OutBuffer* buf)
+extern (C++) void mangleToBuffer(Type t, OutBuffer* buf, bool allowMangleOverride)
 {
-    if (t.mangleOverride)
+    if (allowMangleOverride && t.mangleOverride) printf("mangleToBuffer deco=%s mangling=%s mangleOverride=%s t=%p\n", t.deco, t.mangling, t.mangleOverride, t);
+    if (allowMangleOverride && t.mangleOverride)
         buf.writestring(t.mangleOverride);
+    else if (allowMangleOverride && t.mangling)
+        buf.writestring(t.mangling);
     else if (t.deco)
         buf.writestring(t.deco);
     else
     {
-        scope Mangler v = new Mangler(buf);
+        scope Mangler v = new Mangler(buf, allowMangleOverride);
         v.visitWithMask(t, 0);
     }
 }
@@ -1125,9 +1133,9 @@ extern (C++) void mangleToBuffer(Expression e, OutBuffer* buf)
     e.accept(v);
 }
 
-extern (C++) void mangleToBuffer(Dsymbol s, OutBuffer* buf)
+extern (C++) void mangleToBuffer(Dsymbol s, OutBuffer* buf, bool allowMangleOverride = false)
 {
-    scope Mangler v = new Mangler(buf);
+    scope Mangler v = new Mangler(buf, allowMangleOverride);
     s.accept(v);
 }
 

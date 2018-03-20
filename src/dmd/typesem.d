@@ -1395,12 +1395,15 @@ static Type merge(Type type)
         OutBuffer buf;
         buf.reserve(32);
 
-        mangleToBuffer(type, &buf);
+        OutBuffer manglingBuffer;
+
+        mangleToBuffer(type, &buf, false);
+        manglingBuffer.reserve(32);
+        mangleToBuffer(type, &manglingBuffer, true);
 
         StringValue* sv = type.stringtable.update(cast(char*)buf.data, buf.offset);
         if (sv.ptrvalue)
         {
-            auto mangleOverride = t.mangleOverride;
             t = cast(Type)sv.ptrvalue;
             debug
             {
@@ -1409,19 +1412,24 @@ static Type merge(Type type)
                     printf("t = %s\n", t.toChars());
             }
             assert(t.deco);
+            assert(t.mangling);
             //printf("old value, deco = '%s' %p\n", t.deco, t.deco);
-
-            if (mangleOverride)
-            {
-                t = t.copy();
-                t.mangleOverride = mangleOverride;
-            }
         }
         else
         {
             sv.ptrvalue = cast(char*)(t = stripDefaultArgs(t));
             type.deco = t.deco = cast(char*)sv.toDchars();
-            //printf("new value, deco = '%s' %p\n", t.deco, t.deco);
+            import std.string;
+
+            if (t.deco.fromStringz == "PF3fooZv")
+                assert(false);
+
+            if (type.mangleOverride)
+                type.mangling = t.mangling = manglingBuffer.extractString();
+            else
+                type.mangling = t.mangling = t.deco;
+
+            // printf("new value, deco = '%s' %p\n", t.deco, t.deco);
         }
     }
     return t;

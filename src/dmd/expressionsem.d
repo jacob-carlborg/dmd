@@ -9433,7 +9433,7 @@ Expression semanticX(DotIdExp exp, Scope* sc)
         if (is(Node == Type) || is(Node == Dsymbol))
     {
         OutBuffer buf;
-        .mangleToBuffer(node, &buf);
+        .mangleToBuffer(node, &buf, true);
         const s = buf.peekSlice();
         auto e = new StringExp(exp.loc, buf.extractString(), s.length);
         return e.expressionSemantic(sc);

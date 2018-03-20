@@ -514,6 +514,7 @@ extern (C++) abstract class Type : RootObject
 
     /// Overridden symbol with `pragma(mangle, "...")`.
     const(char)* mangleOverride;
+    const(char)* mangling;
 
     extern (C++) static __gshared Type tvoid;
     extern (C++) static __gshared Type tint8;
@@ -2805,7 +2806,7 @@ extern (C++) abstract class Type : RootObject
         // _init_10TypeInfo_%s
         OutBuffer buf;
         buf.reserve(32);
-        mangleToBuffer(this, &buf);
+        mangleToBuffer(this, &buf, false);
 
         const slice = buf.peekSlice();
 
