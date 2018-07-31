@@ -2,6 +2,8 @@
 
 set -e -v
 
+HOST_DUB=/c/projects/dub.exe
+
 clone() {
     local url="$1"
     local path="$2"
@@ -52,6 +54,16 @@ if [ $D_COMPILER == "dmd" ]; then
     dmd --version
 fi
 
+if ! [ -f "$HOST_DUB" ]; then
+    pushd /tmp
+    latest=$(curl -L http://downloads.dlang.org/releases/LATEST)
+    curl -L -o dmd.7z "http://downloads.dlang.org/releases/2.x/$latest/dmd.$latest.windows.7z"
+    7z x -y dmd.7z
+    mv dmd2/windows/bin/dub.exe "$HOST_DUB"
+    rm -rf dmd.7z dmd2
+    popd
+fi
+
 for proj in druntime phobos; do
     if [ $APPVEYOR_REPO_BRANCH != master ] && [ $APPVEYOR_REPO_BRANCH != stable ] &&
             ! git ls-remote --exit-code --heads https://github.com/dlang/$proj.git $APPVEYOR_REPO_BRANCH > /dev/null; then
@@ -82,4 +94,4 @@ export MODEL="64"
 export MODEL_FLAG="-m64"
 
 cd /c/projects/dmd/test
-../../gnumake/make -j3 all MODEL=$MODEL ARGS="-O -inline -g" MODEL_FLAG=$MODEL_FLAG LIB="../../phobos;$LIB"
+../../gnumake/make -j3 all MODEL=$MODEL ARGS="-O -inline -g" MODEL_FLAG=$MODEL_FLAG LIB="../../phobos;$LIB" HOST_DUB="$HOST_DUB" DMD=/c/projects/dmd/src/dmd

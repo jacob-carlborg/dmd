@@ -29,6 +29,9 @@ jobs:
           command: sudo ls -l /dlang/dmd-2.078.0/linux && sudo ls -l /dlang/dmd-2.078.0/src
           name: Test Docker image
       - run:
+          command: ./.circleci/run.sh install-dub
+          name: Install Dub
+      - run:
           # needs to be a separate step, s.t. `run.sh` gets updated too
           command: ./.circleci/run.sh setup-repos
           name: Merge with upstream + clone DRuntime & Phobos

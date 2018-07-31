@@ -9,6 +9,7 @@ if [ -z ${FULL_BUILD+x} ] ; then echo "Variable 'FULL_BUILD' needs to be set."; 
 if [ -z ${MODEL+x} ] ; then echo "Variable 'MODEL' needs to be set."; exit 1; fi
 if [ -z ${DMD+x} ] ; then echo "Variable 'DMD' needs to be set."; exit 1; fi
 
+HOST_DUB=/home/runner/dlang/dub
 CURL_USER_AGENT="DMD-CI $(curl --version | head -n 1)"
 build_path=generated/$OS_NAME/release/$MODEL
 
@@ -84,11 +85,12 @@ test() {
 
 # test dmd
 test_dmd() {
+    "$HOST_DUB" --version
     # test fewer compiler argument permutations for PRs to reduce CI load
     if [ "$FULL_BUILD" == "true" ] && [ "$OS_NAME" == "linux"  ]; then
-        make -j$N -C test MODEL=$MODEL # all ARGS by default
+        make -j$N -C test MODEL=$MODEL HOST_DUB="$HOST_DUB" # all ARGS by default
     else
-        make -j$N -C test MODEL=$MODEL ARGS="-O -inline -release"
+        make -j$N -C test MODEL=$MODEL ARGS="-O -inline -release" HOST_DUB="$HOST_DUB"
     fi
 }
 
@@ -102,10 +104,11 @@ test_dub_package() {
         local abs_build_path="$PWD/$build_path"
         pushd test/dub_package
         for file in *.d ; do
+            "$HOST_DUB" --version
             # build with host compiler
-            dub --single "$file"
+            "$HOST_DUB" --single "$file"
             # build with built compiler (~master)
-            DFLAGS="-de" dub --single --compiler="${abs_build_path}/dmd" "$file"
+            DFLAGS="-de" "$HOST_DUB" --single --compiler="${abs_build_path}/dmd" "$file"
         done
         popd
         # Test rdmd build
@@ -174,5 +177,22 @@ install_d() {
     local install_sh="install.sh"
     download_install_sh "$install_sh"
     CURL_USER_AGENT="$CURL_USER_AGENT" bash "$install_sh" "$1"
+  fi
+
+  # Replace default Dub with the latest version of Dub for GDC and LDC since
+  # they ship with a version of Dub that is too old, that doesn't support the
+  # `DUB_EXE` environment variable.
+  if [ "${DMD:-dmd}" == "gdc" ]   ||
+     [ "${DMD:-dmd}" == "gdmd" ]  ||
+     [ "${DMD:-dmd}" == "ldmd2" ] ||
+     [ "${DMD:-dmd}" == "ldc" ] ; then
+    source ~/dlang/*/activate # activate host compiler
+    $DMD -run download_dub.d $MODEL
+    mv dub "$HOST_DUB"
+    deactivate
+  else # dmd
+    source ~/dlang/*/activate # activate host compiler
+    cp "$(which dub)" "$HOST_DUB"
+    deactivate
   fi
 }

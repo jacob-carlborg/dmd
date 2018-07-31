@@ -439,8 +439,11 @@ DEPS = $(patsubst %.o,%.deps,$(DMD_OBJS) $(BACK_OBJS) $(BACK_DOBJS))
 
 all: $G/dmd
 
-auto-tester-build: $G/dmd checkwhitespace cxx-unittest $G/dmd_frontend
+auto-tester-build: $G/dmd checkwhitespace cxx-unittest $G/dmd_frontend download-dub
 .PHONY: auto-tester-build
+
+download-dub:
+	$(HOST_DMD_RUN) -m$(NATIVE_MODEL) -run ../download_dub.d $(MODEL)
 
 toolchain-info:
 	@echo '==== Toolchain Information ===='

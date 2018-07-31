@@ -48,9 +48,9 @@ ifeq ($(findstring win,$(OS)),win)
 
     PIC?=0
 
-    DRUNTIME_PATH=..\..\druntime
-    PHOBOS_PATH=..\..\phobos
-    export DFLAGS=-I$(DRUNTIME_PATH)\import -I$(PHOBOS_PATH)
+    DRUNTIME_PATH=$(abspath ..\..\druntime)
+    PHOBOS_PATH=$(abspath ..\..\phobos)
+    export COMMON_DFLAGS=-I$(DRUNTIME_PATH)\import -I$(PHOBOS_PATH)
     export LIB=$(PHOBOS_PATH)
 
     # auto-tester might run the testsuite with a different $(MODEL) than DMD
@@ -61,8 +61,7 @@ ifeq ($(findstring win,$(OS)),win)
     else
         DMD_MODEL=64
     endif
-    export DMD=../generated/windows/$(BUILD)/$(DMD_MODEL)/dmd$(EXE)
-
+    DFLAGS=$(COMMON_DFLAGS)
 else
     export ARGS=-inline -release -g -O -fPIC
     export EXE=
@@ -77,7 +76,6 @@ else
     else
         DMD_MODEL=64
     endif
-    export DMD=../generated/$(OS)/$(BUILD)/$(DMD_MODEL)/dmd
 
     # default to PIC on x86_64, use PIC=1/0 to en-/disable PIC.
     # Note that shared libraries and C files are always compiled with PIC.
@@ -94,22 +92,53 @@ else
         export PIC_FLAG:=
     endif
 
-    DRUNTIME_PATH=../../druntime
-    PHOBOS_PATH=../../phobos
+    DRUNTIME_PATH=$(abspath ../../druntime)
+    PHOBOS_PATH=$(abspath ../../phobos)
     # link against shared libraries (defaults to true on supported platforms, can be overridden w/ make SHARED=0)
     SHARED=$(if $(findstring $(OS),linux freebsd),1,)
-    DFLAGS=-I$(DRUNTIME_PATH)/import -I$(PHOBOS_PATH) -L-L$(PHOBOS_PATH)/generated/$(OS)/$(BUILD)/$(MODEL)
+    COMMON_DFLAGS=-I$(DRUNTIME_PATH)/import -I$(PHOBOS_PATH) -L-L$(PHOBOS_PATH)/generated/$(OS)/$(BUILD)/$(MODEL)
     ifeq (1,$(SHARED))
-        DFLAGS+=-defaultlib=libphobos2.so -L-rpath=$(PHOBOS_PATH)/generated/$(OS)/$(BUILD)/$(MODEL)
+        DFLAGS=$(COMMON_DFLAGS) -defaultlib=libphobos2.so -L-rpath=$(PHOBOS_PATH)/generated/$(OS)/$(BUILD)/$(MODEL)
+    else
+        DFLAGS=$(COMMON_DFLAGS)
     endif
     export DFLAGS
 endif
 REQUIRED_ARGS+=$(PIC_FLAG)
 
+ifndef DMD
+    export DMD=$(abspath ../generated/$(OS)/$(BUILD)/$(DMD_MODEL)/dmd$(EXE))
+endif
+
 ifeq ($(OS),osx)
     ifeq ($(MODEL),64)
         export D_OBJC=1
     endif
+endif
+
+ifeq ($(MODEL),64)
+    DUB_ARCH=x86_64
+else
+    DUB_ARCH=x86
+endif
+
+ifndef HOST_DUB
+    # check if "dub" has been downloaded by the DMD makefile
+    ifeq (,$(wildcard ../src/dub$(EXE)))
+        HOST_DUB_PATH=$(abspath $(shell which dub))
+    else
+        HOST_DUB_PATH=$(abspath ../src/dub$(EXE))
+    endif
+else
+    ifeq ($(HOST_DUB),dub)
+        HOST_DUB_PATH=$(abspath $(shell which $(HOST_DUB)))
+    else
+        HOST_DUB_PATH=$(abspath $(HOST_DUB))
+    endif
+endif
+
+ifeq (,$(HOST_DUB_PATH))
+    $(error '$(HOST_DUB)' not found, get Dub)
 endif
 
 DEBUG_FLAGS=$(PIC_FLAG) -g
@@ -158,7 +187,19 @@ $(RESULTS_DIR)/.created:
 	$(QUIET)if [ ! -d $(RESULTS_DIR)/fail_compilation ]; then mkdir $(RESULTS_DIR)/fail_compilation; fi
 	$(QUIET)touch $(RESULTS_DIR)/.created
 
-run_tests: start_runnable_tests start_compilable_tests start_fail_compilation_tests
+run_tests: unit_tests start_runnable_tests start_compilable_tests start_fail_compilation_tests
+
+unit_tests:
+	@echo "Running unit tests"
+	@echo "OS: '$(OS)'"
+	@echo "MODEL: '$(MODEL)'"
+	@echo "PIC: '$(PIC_FLAG)'"
+	@echo "DMD: '$(DMD)'"
+	chmod +x "$(HOST_DUB_PATH)"
+
+	ls ../generated
+	$(HOST_DUB_PATH) --version
+	cd unit && DFLAGS="-unittest $(COMMON_DFLAGS)" $(HOST_DUB_PATH) --vverbose test --compiler=$(DMD) --arch=$(DUB_ARCH)
 
 run_runnable_tests: $(runnable_test_results)
 

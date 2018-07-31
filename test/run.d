@@ -64,10 +64,8 @@ Options:
     if (!args.length)
         args = ["all"];
 
-    alias normalizeTestName = f => f.absolutePath.dirName.baseName.buildPath(f.baseName);
     auto targets = args
         .predefinedTargets // preprocess
-        .map!normalizeTestName
         .array
         .filterTargets(env);
 
@@ -93,9 +91,9 @@ Options:
         ensureToolsExists;
         foreach (target; taskPool.parallel(targets, 1))
         {
-            auto args = [resultsDir.buildPath("d_do_test"), target];
-            log("run: %-(%s %)", args);
-            ret |= spawnProcess(args, env, Config.none, scriptDir).wait;
+            log("run: %-(%s %)", target.args);
+            ret |= spawnProcess(target.args, env, Config.none,
+                target.workingDirectory).wait;
         }
         if (ret)
             exit(1);
@@ -133,6 +131,39 @@ void ensureToolsExists()
         resultsDir.buildPath(dir).mkdirRecurse;
 }
 
+/// A single target to execute.
+immutable struct Target
+{
+    /**
+    The filename of the target.
+
+    Might be `null` if the target is not for a single file.
+    */
+    string filename;
+
+    /// The arguments how to execute the target.
+    string[] args;
+
+    /// The working directory where to execute the target
+    string workingDirectory = scriptDir;
+
+    /// Returns: the normalized test name
+    string normalizedTestName()
+    {
+        return testPath(filename);
+    }
+
+    /// Returns: `true` if the test exists
+    bool exists()
+    {
+        // This is assumed to be the `unit_tests` target which always exists
+        if (filename.empty)
+            return true;
+
+        return testPath(filename).exists;
+    }
+}
+
 /**
 Goes through the target list and replaces short-hand targets with their expanded version.
 Special targets:
@@ -145,7 +176,27 @@ auto predefinedTargets(string[] targets)
         return testPath(dir).dirEntries("*{.d,.sh}", SpanMode.shallow).map!(e => e.name);
     }
 
-    Appender!(string[]) newTargets;
+    static Target createUnitTestTarget()
+    {
+        Target target = {
+            args: ["dub", "test", "--compiler", hostDMD],
+            workingDirectory: scriptDir.buildPath("unit")
+        };
+
+        return target;
+    }
+
+    static Target createDefaultTarget(string filename)
+    {
+        Target target = {
+            filename: filename,
+            args: [resultsDir.buildPath("d_do_test"), filename]
+        };
+
+        return target;
+    }
+
+    Appender!(Target[]) newTargets;
     foreach (t; targets)
     {
         t = t.buildNormalizedPath; // remove trailing slashes
@@ -157,51 +208,55 @@ auto predefinedTargets(string[] targets)
                 break;
 
             case "run_runnable_tests", "runnable":
-                newTargets.put(findFiles("runnable"));
+                newTargets.put(findFiles("runnable").map!createDefaultTarget);
                 break;
 
             case "run_fail_compilation_tests", "fail_compilation", "fail":
-                newTargets.put(findFiles("fail_compilation"));
+                newTargets.put(findFiles("fail_compilation").map!createDefaultTarget);
                 break;
 
             case "run_compilable_tests", "compilable", "compile":
-                newTargets.put(findFiles("compilable"));
+                newTargets.put(findFiles("compilable").map!createDefaultTarget);
                 break;
 
             case "all":
+                newTargets ~= createUnitTestTarget();
                 foreach (testDir; testDirs)
-                    newTargets.put(findFiles(testDir));
+                    newTargets.put(findFiles(testDir).map!createDefaultTarget);
                 break;
-
+            case "unit_tests":
+                newTargets ~= createUnitTestTarget();
+                break;
             default:
-                newTargets ~= t;
+                newTargets ~= createDefaultTarget(t);
         }
     }
     return newTargets.data;
 }
 
 // Removes targets that do not need updating (i.e. their .out file exists and is newer than the source file)
-auto filterTargets(string[] targets, string[string] env)
+auto filterTargets(Target[] targets, string[string] env)
 {
     bool error;
     foreach (target; targets)
     {
-        if (!testPath(target).exists)
+        if (!target.exists)
         {
-            writefln("Warning: %s can't be found", target);
+            writefln("Warning: %s can't be found", target.normalizedTestName);
             error = true;
         }
     }
     if (error)
         exit(1);
 
-    string[] targetsThatNeedUpdating;
+    Target[] targetsThatNeedUpdating;
     foreach (t; targets)
     {
-        auto resultRunTime = resultsDir.buildPath(t ~ ".out").timeLastModified.ifThrown(SysTime.init);
-        if (!force && resultRunTime > testPath(t).timeLastModified &&
+        immutable testName = t.normalizedTestName;
+        auto resultRunTime = resultsDir.buildPath(testName ~ ".out").timeLastModified.ifThrown(SysTime.init);
+        if (!force && resultRunTime > testPath(testName).timeLastModified &&
                 resultRunTime > env["DMD"].timeLastModified.ifThrown(SysTime.init))
-            writefln("%s is already up-to-date", t);
+            writefln("%s is already up-to-date", testName);
         else
             targetsThatNeedUpdating ~= t;
     }

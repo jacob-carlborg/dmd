@@ -2,9 +2,10 @@
 #
 # Detects and sets the macros:
 #
-#   OS         = one of {osx,linux,freebsd,openbsd,netbsd,dragonflybsd,solaris}
-#   MODEL      = one of { 32, 64 }
-#   MODEL_FLAG = one of { -m32, -m64 }
+#   OS           = one of {osx,linux,freebsd,openbsd,netbsd,dragonflybsd,solaris}
+#   NATIVE_MODEL = one of { 32, 64 } native architecture
+#   MODEL        = one of { 32, 64 } target architecture, i.e. cross-compiling
+#   MODEL_FLAG   = one of { -m32, -m64 }
 #
 # Note:
 #   Keep this file in sync between druntime, phobos, and dmd repositories!
@@ -48,12 +49,23 @@ ifeq (MACOS,$(OS))
   OS:=osx
 endif
 
+ifeq ($(OS), solaris)
+  uname_M:=$(shell isainfo -n)
+else
+  uname_M:=$(shell uname -m)
+endif
+
+ifneq (,$(findstring $(uname_M),x86_64 amd64))
+  NATIVE_MODEL:=64
+endif
+ifneq (,$(findstring $(uname_M),i386 i586 i686))
+  NATIVE_MODEL:=32
+endif
+ifeq (,$(NATIVE_MODEL))
+  $(error Cannot figure 32/64 model from uname -m: $(uname_M))
+endif
+
 ifeq (,$(MODEL))
-  ifeq ($(OS), solaris)
-    uname_M:=$(shell isainfo -n)
-  else
-    uname_M:=$(shell uname -m)
-  endif
   ifneq (,$(findstring $(uname_M),x86_64 amd64))
     MODEL:=64
   endif

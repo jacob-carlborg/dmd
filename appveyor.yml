@@ -14,6 +14,7 @@ cache:
   - C:\projects\gnumake\make.exe
   - C:\projects\VisualD-v0.45.1-rc2.exe
   - C:\projects\ldc2-1.8.0-windows-multilib.7z
+  - C:\projects\dub.exe
 
 skip_commits:
   # Avoid retesting the merged PR on `master` or `stable`

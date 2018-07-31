@@ -1,0 +1,7 @@
+name "unit"
+description "Unit tests for the DMD compiler"
+authors "Jacob Carlborg"
+copyright "Copyright © 2018, The D Language Foundation"
+license "BSL-1.0"
+
+dependency "dmd" path="../.."

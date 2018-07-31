@@ -273,7 +273,10 @@ MAKEFILES=win32.mak posix.mak osmodel.mak
 
 defaulttarget: $G debdmd
 
-auto-tester-build: $G dmd checkwhitespace $(DMDFRONTENDEXE)
+auto-tester-build: $G dmd checkwhitespace $(DMDFRONTENDEXE) download-dub
+
+download-dub:
+	$(HOST_DC) -run ../download_dub.d $(MODEL)
 
 dmd: $G reldmd
 

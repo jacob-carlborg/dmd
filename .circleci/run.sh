@@ -10,6 +10,7 @@ CIRCLE_STAGE=${CIRCLE_STAGE:-pic}
 CIRCLE_PROJECT_REPONAME=${CIRCLE_PROJECT_REPONAME:-dmd}
 BUILD="debug"
 DMD=dmd
+HOST_DUB=/usr/local/bin/dub
 PIC=1
 
 case "${CIRCLE_STAGE}" in
@@ -76,6 +77,16 @@ install_deps() {
     source "$(CURL_USER_AGENT=\"$CURL_USER_AGENT\" bash install.sh dmd-$HOST_DMD_VER --activate)"
     $DC --version
     env
+
+    install_dub
+}
+
+install_dub() {
+    # Replace default Dub with the latest version of Dub since the default one
+    # is too old, that doesn't support the `DUB_EXE` environment variable.
+    "$DMD" -run download_dub.d $MODEL
+    sudo mv dub "$HOST_DUB"
+    "$HOST_DUB" --version
 }
 
 setup_repos() {
@@ -151,7 +162,7 @@ coverage()
 
     cp $build_path/dmd _${build_path}/host_dmd_cov
     make -j1 -C src -f posix.mak MODEL=$MODEL HOST_DMD=../_${build_path}/host_dmd_cov ENABLE_COVERAGE=1 PIC="$PIC" unittest
-    make -j1 -C test MODEL=$MODEL ARGS="-O -inline -release" DMD_TEST_COVERAGE=1 PIC="$PIC"
+    make -j1 -C test MODEL=$MODEL HOST_DUB="$HOST_DUB" ARGS="-O -inline -release" DMD_TEST_COVERAGE=1 PIC="$PIC"
 }
 
 # Checks that all files have been committed and no temporary, untracked files exist.
@@ -163,6 +174,7 @@ check_clean_git()
     # Remove temporary directory + install script
     rm -rf _generated
     rm -f install.sh
+    sudo rm -f "$HOST_DUB"
     # auto-removal of these files doesn't work on CirleCi
     rm -f test/compilable/vcg-ast.d.cg
     # Ensure that there are no untracked changes
@@ -207,6 +219,7 @@ codecov()
 case $1 in
     install-deps) install_deps ;;
     setup-repos) setup_repos ;;
+    install-dub) install_dub ;;
     all)
         check_d_builder;
         coverage;
