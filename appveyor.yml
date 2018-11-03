@@ -81,4 +81,8 @@ build_script:
   - set CC=c:/"Program Files (x86)"/"Microsoft Visual Studio 14.0"/VC/bin/cl.exe
   - ..\..\gnumake\make -j3 all MODEL=32mscoff ARGS="-O -inline -g" "OS=win32" DMD=..\generated\Windows\Release\Win32\dmd.exe LIB="../../phobos;%LIB%" RESULTS_DIR=test_m32mscoff
 
+  # test Dub package
+  - cd c:\projects\dmd
+  - sh /c/projects/dmd/test_dub_package_appveyor.sh
+
 test_script: true
