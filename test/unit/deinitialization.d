@@ -1,6 +1,6 @@
 module deinitialization;
 
-// global.deinitialize
+@("global.deinitialize")
 unittest
 {
     import dmd.globals : global;
@@ -24,7 +24,7 @@ unittest
 
     global._init();
     global.deinitialize();
-    assert(false);
+
     assert(global == global.init);
 }
 
