@@ -6,11 +6,38 @@ import std.conv : to;
 import std.file : dirEntries, exists, SpanMode, mkdirRecurse, write;
 import std.format : format;
 import std.getopt : getopt;
-import std.path : buildNormalizedPath, dirName, stripExtension, dirSeparator;
-import std.process : spawnProcess, wait;
+import std.path : buildNormalizedPath, buildPath, dirName, dirSeparator,
+    stripExtension, setExtension;
+import std.process : environment, spawnProcess, wait;
 import std.range : empty;
 import std.stdio;
 import std.string : join, strip;
+
+version (Posix)
+    enum exeExtension = "";
+else version (Windows)
+    enum exeExtension = ".exe";
+
+version(Windows)
+    enum os ="windows";
+else version(OSX)
+    enum os ="osx";
+else version(linux)
+    enum os ="linux";
+else version(FreeBSD)
+    enum os ="freebsd";
+else version(OpenBSD)
+    enum os ="openbsd";
+else version(NetBSD)
+    enum os ="netbsd";
+else version(DragonFlyBSD)
+    enum os ="dragonflybsd";
+else version(Solaris)
+    enum os ="solaris";
+else version(SunOS)
+    enum os ="solaris";
+else
+    static assert(0, "Unrecognized or unsupported OS.");
 
 enum scriptDir = __FILE_FULL_PATH__.dirName.buildNormalizedPath;
 enum projectRoot = scriptDir.buildNormalizedPath("..");
@@ -82,7 +109,17 @@ void writeRunnerFile(Range)(Range moduleNames, string path, string filter)
     write(path, content);
 }
 
-void writeCmdfile(string path, string runnerPath, const string[] testFiles)
+/**
+Writes a cmdfile with all the compiler flags to the given `path`.
+
+Params:
+    path = the path where to write the cmdfile file
+    runnerPath = the path of the unit test runner file outputted by `writeRunnerFile`
+    outputPath = the path where to place the compiled binary
+    testFiles = the test files to compile
+*/
+void writeCmdfile(string path, string runnerPath, string outputPath,
+    const string[] testFiles)
 {
     enum staticFlags = [
         "-version=NoBackend",
@@ -90,26 +127,37 @@ void writeCmdfile(string path, string runnerPath, const string[] testFiles)
         "-version=NoMain",
         "-version=MARS",
         "-unittest",
-        "-J" ~ projectRoot.buildNormalizedPath("generated", "dub"),
-        "-J" ~ projectRoot.buildNormalizedPath("res"),
-        "-I" ~ projectRoot.buildNormalizedPath("src"),
-        "-I" ~ scriptDir.buildNormalizedPath("unit"),
+        "-J" ~ projectRoot.buildPath("generated", "dub"),
+        "-J" ~ projectRoot.buildPath("res"),
+        "-I" ~ projectRoot.buildPath("src"),
+        "-I" ~ scriptDir.buildPath("unit"),
         "-i"
     ];
 
-    const flags = staticFlags ~ testFiles;
+    const flags = staticFlags ~ testFiles ~ runnerPath ~ ("-of" ~ outputPath);
     write(path, flags.join("\n"));
 }
 
-int main(string[] args)
+string dmdPath()
 {
-    args ~= ["unit/deinitialization.d"];
+    const os = environment.get("OS", .os);
+    const build = environment.get("BUILD", "release");
+    const dmdFilename = "dmd".setExtension(exeExtension);
+    
+    const prefix = projectRoot.buildNormalizedPath("generated", os, build);
+    const dmdModel = prefix.buildPath("64", dmdFilename).exists ? "64" : "32";
+    const model = environment.get("MODEL", dmdModel);
+    
+    return prefix.buildPath(model, dmdFilename);
+}
 
-    string unitTestFilter;
-    getopt(args, "filter | f", &unitTestFilter);
+/**
+Returns `true` if any of the given files don't exist.
 
-    const givenFiles = args[1 .. $];
-
+Also prints an error message.
+*/
+bool missingTestFiles(const string[] givenFiles)
+{
     const nonExistingTestFiles = givenFiles
         .map!(file => testPath(file))
         .filter!(file => !file.exists)
@@ -120,10 +168,26 @@ int main(string[] args)
         stderr.writefln("The following test files don't exist:\n\n%s",
             nonExistingTestFiles);
 
-        return 1;
+        return true;
     }
+    
+    return false;
+}
 
-    const runnerPath = resultsDir.buildNormalizedPath("runner.d");
+
+int main(string[] args)
+{
+    args ~= ["unit/deinitialization.d"];
+
+    string unitTestFilter;
+    getopt(args, "filter | f", &unitTestFilter);
+
+    const givenFiles = args[1 .. $];
+
+    if (missingTestFiles(givenFiles))
+        return 1;
+
+    enum runnerPath = resultsDir.buildPath("runner.d");
     const testFiles = givenFiles.testFiles;
 
     mkdirRecurse(resultsDir);
@@ -131,13 +195,12 @@ int main(string[] args)
         .moduleNames
         .writeRunnerFile(runnerPath, unitTestFilter);
 
-    const cmdfilePath = resultsDir.buildNormalizedPath("cmdfile");
-    writeCmdfile(cmdfilePath, runnerPath, testFiles);
+    enum cmdfilePath = resultsDir.buildPath("cmdfile");
+    enum outputPath = resultsDir.buildPath("runner").setExtension(exeExtension);
+    writeCmdfile(cmdfilePath, runnerPath, outputPath, testFiles);
 
-
-    const dmdPath = projectRoot.buildNormalizedPath("generated/osx/release/64/dmd");
-    writeln([dmdPath, "@" ~ cmdfilePath, "-run", runnerPath].join(" "));
-    // spawnProcess([dmdPath, "@" ~ cmdfilePath]).wait();
+    spawnProcess([dmdPath, "@" ~ cmdfilePath]).wait();
+    spawnProcess(outputPath).wait();
 
     return 0;
 }
