@@ -69,6 +69,9 @@ auto moduleNames(const string[] testFiles)
 void writeRunnerFile(Range)(Range moduleNames, string path, string filter)
 {
     enum codeTemplate = q{
+        import core.runtime : Runtime, UnitTestResult;
+
+        // modules to unit test starts here:
         %s
 
         enum modules = [
@@ -77,21 +80,98 @@ void writeRunnerFile(Range)(Range moduleNames, string path, string filter)
 
         enum filter = %s;
 
-        void main()
+        version(unittest) shared static this()
         {
+            Runtime.extendedModuleUnitTester = &unitTestRunner;
+        }
+
+        UnitTestResult unitTestRunner()
+        {
+            import std.algorithm : canFind, map;
+            import std.format : format;
+            import std.range : empty, front, enumerate;
+            import std.stdio : writeln, writefln, stderr, stdout;
+            import std.string : join;
+            import std.conv : text;
+
+            struct Test
+            {
+                Throwable throwable;
+                string name;
+
+                string toString()
+                {
+                    return format!"%%s\n%%s"(name, throwable);
+                }
+
+                string fileInfo()
+                {
+                    with (throwable)
+                        return format!"%%s:%%s"(file, line);
+                }
+            }
+
+            Test[] failedTests;
+            size_t testCount;
+
+            void printReport()
+            {
+                if (!failedTests.empty)
+                {
+                    alias formatTest = t =>
+                        format!"%%s) %%s"(t.index + 1, t.value.toString);
+
+                    const failedTestsMessage = failedTests
+                        .enumerate
+                        .map!(formatTest)
+                        .join("\n");
+
+                    stderr.writefln!"Failures:\n\n%%s\n"(failedTestsMessage);
+                }
+
+                auto output = failedTests.empty ? stdout : stderr;
+                output.writefln!"%%s tests, %%s failures"(testCount, failedTests.length);
+
+                if (failedTests.empty)
+                    return;
+
+                stderr.writefln!"\nFailed tests:\n%%s"(
+                    failedTests.map!(t => t.fileInfo).join("\n"));
+            }
+
             static foreach (m ; modules)
             {
                 foreach (unitTest ; __traits(getUnitTests, mixin(m)))
                 {
                     enum attributes = [__traits(getAttributes, unitTest)];
 
-                    static if (filter.length == 0)
-                        unitTest();
+                    testCount++;
+                    Test test;
 
-                    else if (attributes.canFind!(e => e.canFind(filter)))
-                        unitTest();
+                    try
+                    {
+                        static if (!attributes.empty)
+                            test.name = attributes.front;
+
+                        static if (filter.length == 0)
+                            unitTest();
+
+                        else if (attributes.front.canFind(filter))
+                            unitTest();
+                    }
+
+                    catch (Throwable t)
+                    {
+                        test.throwable = t;
+                        failedTests ~= test;
+                    }
                 }
             }
+
+            printReport();
+
+            UnitTestResult result = { runMain: false };
+            return result;
         }
     };
 
@@ -131,7 +211,9 @@ void writeCmdfile(string path, string runnerPath, string outputPath,
         "-J" ~ projectRoot.buildPath("res"),
         "-I" ~ projectRoot.buildPath("src"),
         "-I" ~ scriptDir.buildPath("unit"),
-        "-i"
+        "-i",
+        "-g",
+        "-main"
     ];
 
     const flags = staticFlags ~ testFiles ~ runnerPath ~ ("-of" ~ outputPath);
@@ -143,11 +225,11 @@ string dmdPath()
     const os = environment.get("OS", .os);
     const build = environment.get("BUILD", "release");
     const dmdFilename = "dmd".setExtension(exeExtension);
-    
+
     const prefix = projectRoot.buildNormalizedPath("generated", os, build);
     const dmdModel = prefix.buildPath("64", dmdFilename).exists ? "64" : "32";
     const model = environment.get("MODEL", dmdModel);
-    
+
     return prefix.buildPath(model, dmdFilename);
 }
 
@@ -170,7 +252,7 @@ bool missingTestFiles(const string[] givenFiles)
 
         return true;
     }
-    
+
     return false;
 }
 
