@@ -1,3 +1,5 @@
+module deinitialization;
+
 // global.deinitialize
 unittest
 {
@@ -22,7 +24,7 @@ unittest
 
     global._init();
     global.deinitialize();
-
+    assert(false);
     assert(global == global.init);
 }
 
