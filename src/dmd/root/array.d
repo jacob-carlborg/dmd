@@ -15,6 +15,7 @@ module dmd.root.array;
 import core.stdc.string;
 
 import dmd.root.rmem;
+import dmd.root.serializer;
 
 extern (C++) struct Array(T)
 {
@@ -43,6 +44,12 @@ public:
     {
         if (data != &smallarray[0])
             mem.xfree(data);
+    }
+
+    void serialize(ref Serialzier serializer)
+    {
+        auto dArray = length > 0 ? this[] : [];
+        serializer.serialize(dArray);
     }
 
     const(char)* toChars()

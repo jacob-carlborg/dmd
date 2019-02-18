@@ -311,7 +311,7 @@ endif
 ######## DMD frontend source files
 
 FRONT_SRCS=$(addsuffix .d, $(addprefix $D/,access aggregate aliasthis apply argtypes arrayop	\
-	arraytypes astcodegen attrib builtin canthrow cli clone compiler complex cond constfold	\
+	arraytypes astcodegen ast_node attrib builtin canthrow cli clone compiler complex cond constfold	\
 	cppmangle cppmanglewin ctfeexpr ctorflow dcast dclass declaration delegatize denum dimport	\
 	dinifile dinterpret dmacro dmangle dmodule doc dscope dstruct dsymbol dsymbolsem	\
 	dtemplate dversion escape expression expressionsem func			\
@@ -328,7 +328,7 @@ LEXER_ROOT=$(addsuffix .d, $(addprefix $(ROOT)/, array ctfloat file filename out
 
 ROOT_SRCS = $(addsuffix .d,$(addprefix $(ROOT)/,aav array ctfloat file \
 	filename man outbuffer port response rmem rootobject speller \
-	longdouble stringtable hash))
+	longdouble stringtable hash serializer))
 
 GLUE_SRCS=$(addsuffix .d, $(addprefix $D/,irstate toctype glue gluelayer todt tocsym toir dmsc \
 	tocvdebug s2ir toobj e2ir eh iasm iasmdmd iasmgcc objc_glue))

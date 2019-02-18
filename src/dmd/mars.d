@@ -552,6 +552,10 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     backend_init();
 
+    import std.stdio : writeln;
+    import dmd.root.serializer;
+    serialize(modules[0]).writeln;
+
     // Do semantic analysis
     foreach (m; modules)
     {

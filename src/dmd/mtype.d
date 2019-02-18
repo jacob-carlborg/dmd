@@ -21,6 +21,7 @@ import core.stdc.string;
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.attrib;
+import dmd.ast_node;
 import dmd.gluelayer;
 import dmd.dclass;
 import dmd.declaration;
@@ -44,6 +45,7 @@ import dmd.root.ctfloat;
 import dmd.root.outbuffer;
 import dmd.root.rmem;
 import dmd.root.rootobject;
+import dmd.root.serializer;
 import dmd.root.stringtable;
 import dmd.target;
 import dmd.tokens;
@@ -374,7 +376,7 @@ enum VarArg
 
 /***********************************************************
  */
-extern (C++) abstract class Type : RootObject
+extern (C++) abstract class Type : ASTNode
 {
     TY ty;
     MOD mod; // modifiers MODxxxx
@@ -2671,7 +2673,7 @@ extern (C++) abstract class Type : RootObject
         inout(TypeNull)       isTypeNull()       { return ty == Tnull      ? cast(typeof(return))this : null; }
     }
 
-    void accept(Visitor v)
+    override void accept(Visitor v)
     {
         v.visit(this);
     }
@@ -6234,6 +6236,15 @@ extern (C++) struct ParameterList
     Parameter opIndex(size_t i)
     {
         return Parameter.getNth(parameters, i);
+    }
+
+    // This is added due to the `alias this`. When the serialization module
+    // looks for a custom serialization implementation it will see through the
+    // `alias this` and get the one in `dmd.root.array`. But if `parameters` is
+    // null it will try to use the customization point anyway and crash.
+    void serialize(ref Serialzier serializer)
+    {
+        serializer.serialize(parameters);
     }
 
     alias parameters this;
