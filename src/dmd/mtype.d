@@ -238,7 +238,7 @@ private enum TFlags
     char_        = 0x40,
 }
 
-enum ENUMTY : int
+enum ENUMTY : ubyte
 {
     Tarray,     // slice array, aka T[]
     Tsarray,    // static array, aka T[dimension]
@@ -339,7 +339,8 @@ alias Tuns128 = ENUMTY.Tuns128;
 alias Ttraits = ENUMTY.TTraits;
 alias TMAX = ENUMTY.TMAX;
 
-alias TY = ubyte;
+// for backwards compatibility
+alias TY = ENUMTY;
 
 enum MODFlags : int
 {
@@ -379,7 +380,7 @@ enum VarArg
  */
 extern (C++) abstract class Type : ASTNode
 {
-    TY ty;
+    ENUMTY ty;
     MOD mod; // modifiers MODxxxx
     char* deco;
 
