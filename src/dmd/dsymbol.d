@@ -244,22 +244,21 @@ extern (C++) class Dsymbol : ASTNode
     // (only use this with ddoc)
     UnitTestDeclaration ddocUnittest;
 
-    final extern (D) this()
+    final extern (D) this(Kind nodeKind)
     {
-        //printf("Dsymbol::Dsymbol(%p)\n", this);
-        loc = Loc(null, 0, 0);
+        this(nodeKind, null);
     }
 
-    final extern (D) this(Identifier ident)
+    final extern (D) this(Kind nodeKind, Identifier ident)
     {
-        //printf("Dsymbol::Dsymbol(%p, ident)\n", this);
-        this.loc = Loc(null, 0, 0);
-        this.ident = ident;
+        this(nodeKind, Loc.initial, ident);
     }
 
-    final extern (D) this(const ref Loc loc, Identifier ident)
+    final extern (D) this(Kind nodeKind, const ref Loc loc, Identifier ident)
     {
         //printf("Dsymbol::Dsymbol(%p, ident)\n", this);
+        super(nodeKind);
+
         this.loc = loc;
         this.ident = ident;
     }
@@ -1197,6 +1196,9 @@ extern (C++) class Dsymbol : ASTNode
  */
 extern (C++) class ScopeDsymbol : Dsymbol
 {
+    /// The kind of this AST node.
+    package enum astNodeKind = Kind.scopeDsymbol;
+
     Dsymbols* members;          // all Dsymbol's in this scope
     DsymbolTable symtab;        // members[] sorted into table
     uint endlinnum;             // the linnumber of the statement after the scope (0 if unknown)
@@ -1212,16 +1214,17 @@ private:
 public:
     final extern (D) this()
     {
+        this(astNodeKind, null);
     }
 
-    final extern (D) this(Identifier ident)
+    final extern (D) this(Kind nodeKind, Identifier ident)
     {
-        super(ident);
+        this(kind, Loc.initial, ident);
     }
 
-    final extern (D) this(const ref Loc loc, Identifier ident)
+    final extern (D) this(Kind nodeKind, const ref Loc loc, Identifier ident)
     {
-        super(loc, ident);
+        super(nodeKind, loc, ident);
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)

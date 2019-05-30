@@ -303,6 +303,289 @@ struct ASTBase
 
     extern (C++) abstract class ASTNode : RootObject
     {
+        /// AST node kinds
+        enum Kind
+        {
+            addAssignExp,
+            addExp,
+            addrExp,
+            aliasDeclaration,
+            aliasThis,
+            alignDeclaration,
+            andAssignExp,
+            andExp,
+            anonDeclaration,
+            arrayExp,
+            arrayInitializer,
+            arrayLengthExp,
+            arrayLiteralExp,
+            arrayScopeSymbol,
+            asmStatement,
+            assertExp,
+            assignExp,
+            assocArrayLiteralExp,
+            binAssignExp,
+            blitExp,
+            breakStatement,
+            callExp,
+            caseRangeStatement,
+            caseStatement,
+            castExp,
+            catAssignExp,
+            catch_,
+            catDcharAssignExp,
+            catElemAssignExp,
+            catExp,
+            classDeclaration,
+            classReferenceExp,
+            cmpExp,
+            comExp,
+            commaExp,
+            compileDeclaration,
+            compileExp,
+            compileStatement,
+            complexExp,
+            compoundAsmStatement,
+            compoundDeclarationStatement,
+            compoundStatement,
+            condExp,
+            conditionalDeclaration,
+            conditionalStatement,
+            constructExp,
+            continueStatement,
+            cppMangleDeclaration,
+            ctfeExp,
+            ctorDeclaration,
+            debugCondition,
+            debugStatement,
+            debugSymbol,
+            declarationExp,
+            defaultInitExp,
+            defaultStatement,
+            delegateExp,
+            delegateFuncptrExp,
+            delegatePtrExp,
+            deleteDeclaration,
+            deleteExp,
+            deprecatedDeclaration,
+            divAssignExp,
+            divExp,
+            dollarExp,
+            doStatement,
+            dotExp,
+            dotIdExp,
+            dotTemplateExp,
+            dotTemplateInstanceExp,
+            dotTypeExp,
+            dotVarExp,
+            dsymbol,
+            dsymbolExp,
+            dtorDeclaration,
+            dtorExpStatement,
+            dvCondition,
+            enumDeclaration,
+            enumMember,
+            equalExp,
+            errorExp,
+            errorInitializer,
+            errorStatement,
+            expInitializer,
+            expressionDsymbol,
+            expStatement,
+            fileInitExp,
+            foreachRangeStatement,
+            foreachStatement,
+            forStatement,
+            forwardingAttribDeclaration,
+            forwardingScopeDsymbol,
+            forwardingStatement,
+            funcAliasDeclaration,
+            funcDeclaration,
+            funcExp,
+            funcInitExp,
+            funcLiteralDeclaration,
+            gccAsmStatement,
+            gotoCaseStatement,
+            gotoDefaultStatement,
+            gotoStatement,
+            haltExp,
+            identifierExp,
+            identityExp,
+            ifStatement,
+            Import,
+            importExp,
+            importStatement,
+            indexExp,
+            inExp,
+            Initializer,
+            inlineAsmStatement,
+            integerExp,
+            interfaceDeclaration,
+            intervalExp,
+            invariantDeclaration,
+            isExp,
+            labelDsymbol,
+            labelStatement,
+            lineInitExp,
+            linkDeclaration,
+            logicalExp,
+            minAssignExp,
+            minExp,
+            modAssignExp,
+            modExp,
+            module_,
+            moduleInitExp,
+            mulAssignExp,
+            mulExp,
+            negExp,
+            newAnonClassExp,
+            newDeclaration,
+            newExp,
+            notExp,
+            nspace,
+            nullExp,
+            objcClassReferenceExp,
+            orAssignExp,
+            orExp,
+            overDeclaration,
+            overExp,
+            overloadSet,
+            Package,
+            Parameter,
+            peelStatement,
+            postBlitDeclaration,
+            postExp,
+            powAssignExp,
+            powExp,
+            pragmaDeclaration,
+            pragmaStatement,
+            preExp,
+            prettyFuncInitExp,
+            protDeclaration,
+            ptrExp,
+            realExp,
+            removeExp,
+            returnStatement,
+            scopeDsymbol,
+            scopeExp,
+            scopeGuardStatement,
+            scopeStatement,
+            sharedStaticCtorDeclaration,
+            sharedStaticDtorDeclaration,
+            shlAssignExp,
+            shlExp,
+            shrAssignExp,
+            shrExp,
+            sliceExp,
+            staticAssert,
+            staticAssertStatement,
+            staticCtorDeclaration,
+            staticDtorDeclaration,
+            staticForeachDeclaration,
+            staticForeachStatement,
+            staticIfCondition,
+            staticIfDeclaration,
+            storageClassDeclaration,
+            stringExp,
+            structDeclaration,
+            structInitializer,
+            structLiteralExp,
+            superExp,
+            switchErrorStatement,
+            switchStatement,
+            symbolDeclaration,
+            symbolExp,
+            symOffExp,
+            synchronizedStatement,
+            templateAliasParameter,
+            templateDeclaration,
+            templateExp,
+            templateInstance,
+            templateMixin,
+            templateParameter,
+            templateThisParameter,
+            templateTupleParameter,
+            templateTypeParameter,
+            templateValueParameter,
+            thisDeclaration,
+            thisExp,
+            thrownExceptionExp,
+            throwStatement,
+            traitsExp,
+            tryCatchStatement,
+            tryFinallyStatement,
+            tupleDeclaration,
+            tupleExp,
+            typeAArray,
+            typeBasic,
+            typeClass,
+            typeDArray,
+            typeDeduced,
+            typeDelegate,
+            typeEnum,
+            typeError,
+            typeExp,
+            typeFunction,
+            typeIdentifier,
+            typeidExp,
+            typeInfoArrayDeclaration,
+            typeInfoAssociativeArrayDeclaration,
+            typeInfoClassDeclaration,
+            typeInfoConstDeclaration,
+            typeInfoDeclaration,
+            typeInfoDelegateDeclaration,
+            typeInfoEnumDeclaration,
+            typeInfoFunctionDeclaration,
+            typeInfoInterfaceDeclaration,
+            typeInfoInvariantDeclaration,
+            typeInfoPointerDeclaration,
+            typeInfoSharedDeclaration,
+            typeInfoStaticArrayDeclaration,
+            typeInfoStructDeclaration,
+            typeInfoTupleDeclaration,
+            typeInfoVectorDeclaration,
+            typeInfoWildDeclaration,
+            typeInstance,
+            typeNull,
+            typePointer,
+            typeReference,
+            typeReturn,
+            typeSArray,
+            typeSlice,
+            typeStruct,
+            typeTraits,
+            typeTuple,
+            typeTypeof,
+            typeVector,
+            uAddExp,
+            unionDeclaration,
+            unitTestDeclaration,
+            unrolledLoopStatement,
+            userAttributeDeclaration,
+            ushrAssignExp,
+            ushrExp,
+            varDeclaration,
+            varExp,
+            vectorArrayExp,
+            vectorExp,
+            versionCondition,
+            versionSymbol,
+            voidInitExp,
+            voidInitializer,
+            whileStatement,
+            withScopeSymbol,
+            withStatement,
+            xorAssignExp,
+            xorExp
+        }
+
+        immutable Kind nodeKind;
+
+        this(Kind nodeKind)
+        {
+            this.nodeKind = nodeKind;
+        }
+
         abstract void accept(Visitor v);
     }
 
@@ -471,12 +754,14 @@ struct ASTBase
 
     extern (C++) class AliasThis : Dsymbol
     {
+        /// The kind of this AST node.
+        package enum astNodeKind = Kind.aliasThis;
+
         Identifier ident;
 
         extern (D) this(const ref Loc loc, Identifier ident)
         {
-            super(null);
-            this.loc = loc;
+            super(astNodeKind, loc, null);
             this.ident = ident;
         }
 
@@ -745,20 +1030,23 @@ struct ASTBase
 
     extern (C++) final class AliasDeclaration : Declaration
     {
-        Dsymbol aliassym;
+        /// The kind of this AST node.
+        package enum astNodeKind = Kind.aliasDeclaration;
 
-        extern (D) this(const ref Loc loc, Identifier id, Dsymbol s)
-        {
-            super(id);
-            this.loc = loc;
-            this.aliassym = s;
-        }
+        Dsymbol aliassym;
 
         extern (D) this(const ref Loc loc, Identifier id, Type type)
         {
-            super(id);
+            super(astNodeKind, id);
             this.loc = loc;
             this.type = type;
+        }
+
+        extern (D) this(const ref Loc loc, Identifier id, Dsymbol s)
+        {
+            this(loc, ident, cast(Type) null);
+            this.loc = loc;
+            this.aliassym = s;
         }
 
         override bool isOverloadable() const
@@ -1264,11 +1552,14 @@ struct ASTBase
 
     extern (C++) final class AnonDeclaration : AttribDeclaration
     {
+        /// The kind of this AST node.
+        package enum astNodeKind = Kind.anonDeclaration;
+
         bool isunion;
 
         extern (D) this(const ref Loc loc, bool isunion, Dsymbols* decl)
         {
-            super(decl);
+            super(astNodeKind, decl);
             this.loc = loc;
             this.isunion = isunion;
         }
@@ -1281,11 +1572,14 @@ struct ASTBase
 
     extern (C++) final class AlignDeclaration : AttribDeclaration
     {
+        /// The kind of this AST node.
+        package enum astNodeKind = Kind.alignDeclaration;
+
         Expression ealign;
 
         extern (D) this(const ref Loc loc, Expression ealign, Dsymbols* decl)
         {
-            super(decl);
+            super(astNodeKind, decl);
             this.loc = loc;
             this.ealign = ealign;
         }
@@ -5064,9 +5358,12 @@ struct ASTBase
 
     extern (C++) final class AddrExp : UnaExp
     {
+        /// The kind of this AST node.
+        package enum astNodeKind = Kind.addrExp;
+
         extern (D) this(const ref Loc loc, Expression e)
         {
-            super(loc, TOK.address, __traits(classInstanceSize, AddrExp), e);
+            super(astNodeKind, loc, TOK.address, __traits(classInstanceSize, AddrExp), e);
         }
 
         override void accept(Visitor v)
@@ -5323,20 +5620,24 @@ struct ASTBase
 
     extern (C++) final class ArrayExp : UnaExp
     {
-        Expressions* arguments;
+        /// The kind of this AST node.
+        package enum astNodeKind = Kind.arrayExp;
 
-        extern (D) this(const ref Loc loc, Expression e1, Expression index = null)
-        {
-            super(loc, TOK.array, __traits(classInstanceSize, ArrayExp), e1);
-            arguments = new Expressions();
-            if (index)
-                arguments.push(index);
-        }
+        Expressions* arguments;
 
         extern (D) this(const ref Loc loc, Expression e1, Expressions* args)
         {
-            super(loc, TOK.array, __traits(classInstanceSize, ArrayExp), e1);
+            super(astNodeKind, loc, TOK.array, __traits(classInstanceSize, ArrayExp), e1);
             arguments = args;
+        }
+
+        extern (D) this(const ref Loc loc, Expression e1, Expression index = null)
+        {
+            auto args = new Expressions();
+            if (index)
+                args.push(index);
+
+            this(loc, e1, args);
         }
 
         override void accept(Visitor v)
@@ -5625,9 +5926,12 @@ struct ASTBase
 
     extern (C++) final class AndExp : BinExp
     {
+        /// The kind of this AST node.
+        package enum astNodeKind = Kind.andExp;
+
         extern (D) this(const ref Loc loc, Expression e1, Expression e2)
         {
-            super(loc, TOK.and, __traits(classInstanceSize, AndExp), e1, e2);
+            super(astNodeKind, loc, TOK.and, __traits(classInstanceSize, AndExp), e1, e2);
         }
 
         override void accept(Visitor v)
@@ -5719,9 +6023,12 @@ struct ASTBase
 
     extern (C++) final class AddAssignExp : BinAssignExp
     {
+        /// The kind of this AST node.
+        package enum astNodeKind = Kind.addAssignExp;
+
         extern (D) this(const ref Loc loc, Expression e1, Expression e2)
         {
-            super(loc, TOK.addAssign, __traits(classInstanceSize, AddAssignExp), e1, e2);
+            super(astNodeKind, loc, TOK.addAssign, __traits(classInstanceSize, AddAssignExp), e1, e2);
         }
 
         override void accept(Visitor v)
@@ -5797,9 +6104,12 @@ struct ASTBase
 
     extern (C++) final class AndAssignExp : BinAssignExp
     {
+        /// The kind of this AST node.
+        package enum astNodeKind = Kind.andAssignExp;
+
         extern (D) this(const ref Loc loc, Expression e1, Expression e2)
         {
-            super(loc, TOK.andAssign, __traits(classInstanceSize, AndAssignExp), e1, e2);
+            super(astNodeKind, loc, TOK.andAssign, __traits(classInstanceSize, AndAssignExp), e1, e2);
         }
 
         override void accept(Visitor v)
@@ -6167,6 +6477,9 @@ struct ASTBase
 
     extern (C++) final class ArrayInitializer : Initializer
     {
+        /// The kind of this AST node.
+        package enum astNodeKind = Kind.arrayInitializer;
+
         Expressions index;
         Initializers value;
         uint dim;
@@ -6174,7 +6487,7 @@ struct ASTBase
 
         extern (D) this(const ref Loc loc)
         {
-            super(loc, InitKind.array);
+            super(astNodeKind, loc, InitKind.array);
         }
 
         void addInit(Expression index, Initializer value)

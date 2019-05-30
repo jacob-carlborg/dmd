@@ -30,11 +30,14 @@ import dmd.visitor;
  */
 extern (C++) final class AliasThis : Dsymbol
 {
+    /// The kind of this AST node.
+    package enum astNodeKind = Kind.aliasThis;
+
     Identifier ident;
 
     extern (D) this(const ref Loc loc, Identifier ident)
     {
-        super(loc, null);    // it's anonymous (no identifier)
+        super(astNodeKind, loc, null);    // it's anonymous (no identifier)
         this.ident = ident;
     }
 

@@ -40,14 +40,14 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
 {
     Dsymbols* decl;     // array of Dsymbol's
 
-    extern (D) this(Dsymbols* decl)
+    extern (D) this(Kind nodeKind, Dsymbols* decl)
     {
-        this.decl = decl;
+        this(nodeKind, Loc.initial, null, decl);
     }
 
-    extern (D) this(const ref Loc loc, Identifier ident, Dsymbols* decl)
+    extern (D) this(Kind nodeKind, const ref Loc loc, Identifier ident, Dsymbols* decl)
     {
-        super(loc, ident);
+        super(nodeKind, loc, ident);
         this.decl = decl;
     }
 
@@ -212,10 +212,15 @@ extern (C++) class StorageClassDeclaration : AttribDeclaration
 {
     StorageClass stc;
 
+    extern (D) this(Kind nodeKind, StorageClass stc, Dsymbols* decl)
+    {
+        super(nodeKind, decl);
+        this.stc = stc;
+    }
+
     extern (D) this(StorageClass stc, Dsymbols* decl)
     {
-        super(decl);
-        this.stc = stc;
+        this(stc, decl);
     }
 
     override Dsymbol syntaxCopy(Dsymbol s)
@@ -553,6 +558,9 @@ extern (C++) final class ProtDeclaration : AttribDeclaration
  */
 extern (C++) final class AlignDeclaration : AttribDeclaration
 {
+    /// The kind of this AST node.
+    package enum astNodeKind = Kind.alignDeclaration;
+
     Expression ealign;
     enum structalign_t UNKNOWN = 0;
     static assert(STRUCTALIGN_DEFAULT != UNKNOWN);
@@ -560,7 +568,7 @@ extern (C++) final class AlignDeclaration : AttribDeclaration
 
     extern (D) this(const ref Loc loc, Expression ealign, Dsymbols* decl)
     {
-        super(loc, null, decl);
+        super(astNodeKind, loc, null, decl);
         this.ealign = ealign;
     }
 
@@ -586,6 +594,9 @@ extern (C++) final class AlignDeclaration : AttribDeclaration
  */
 extern (C++) final class AnonDeclaration : AttribDeclaration
 {
+    /// The kind of this AST node.
+    package enum astNodeKind = Kind.anonDeclaration;
+
     bool isunion;
     int sem;                // 1 if successful semantic()
     uint anonoffset;        // offset of anonymous struct
@@ -594,7 +605,7 @@ extern (C++) final class AnonDeclaration : AttribDeclaration
 
     extern (D) this(const ref Loc loc, bool isunion, Dsymbols* decl)
     {
-        super(loc, null, decl);
+        super(astNodeKind, loc, null, decl);
         this.isunion = isunion;
     }
 

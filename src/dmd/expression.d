@@ -4999,9 +4999,12 @@ FuncDeclaration isFuncAddress(Expression e, bool* hasOverloads = null)
  */
 extern (C++) final class AddrExp : UnaExp
 {
+    /// The kind of this AST node.
+    package enum astNodeKind = Kind.addrExp;
+
     extern (D) this(const ref Loc loc, Expression e)
     {
-        super(loc, TOK.address, __traits(classInstanceSize, AddrExp), e);
+        super(astNodeKind, loc, TOK.address, __traits(classInstanceSize, AddrExp), e);
     }
 
     extern (D) this(const ref Loc loc, Expression e, Type t)
@@ -5353,9 +5356,12 @@ extern (C++) final class SliceExp : UnaExp
  */
 extern (C++) final class ArrayLengthExp : UnaExp
 {
+    /// The kind of this AST node.
+    package enum astNodeKind = Kind.arrayLengthExp;
+
     extern (D) this(const ref Loc loc, Expression e1)
     {
-        super(loc, TOK.arrayLength, __traits(classInstanceSize, ArrayLengthExp), e1);
+        super(astNodeKind, loc, TOK.arrayLength, __traits(classInstanceSize, ArrayLengthExp), e1);
     }
 
     override void accept(Visitor v)
@@ -5371,23 +5377,27 @@ extern (C++) final class ArrayLengthExp : UnaExp
  */
 extern (C++) final class ArrayExp : UnaExp
 {
+    /// The kind of this AST node.
+    package enum astNodeKind = Kind.arrayExp;
+
     Expressions* arguments;     // Array of Expression's a0..an
 
     size_t currentDimension;    // for opDollar
     VarDeclaration lengthVar;
 
-    extern (D) this(const ref Loc loc, Expression e1, Expression index = null)
-    {
-        super(loc, TOK.array, __traits(classInstanceSize, ArrayExp), e1);
-        arguments = new Expressions();
-        if (index)
-            arguments.push(index);
-    }
-
     extern (D) this(const ref Loc loc, Expression e1, Expressions* args)
     {
-        super(loc, TOK.array, __traits(classInstanceSize, ArrayExp), e1);
+        super(astNodeKind, loc, TOK.array, __traits(classInstanceSize, ArrayExp), e1);
         arguments = args;
+    }
+
+    extern (D) this(const ref Loc loc, Expression e1, Expression index = null)
+    {
+        auto args = new Expressions();
+        if (index)
+            args.push(index);
+
+        this(loc, e1, args);
     }
 
     override Expression syntaxCopy()
@@ -5861,9 +5871,12 @@ extern (C++) final class BlitExp : AssignExp
  */
 extern (C++) final class AddAssignExp : BinAssignExp
 {
+    /// The kind of this AST node.
+    package enum astNodeKind = Kind.addAssignExp;
+
     extern (D) this(const ref Loc loc, Expression e1, Expression e2)
     {
-        super(loc, TOK.addAssign, __traits(classInstanceSize, AddAssignExp), e1, e2);
+        super(astNodeKind, loc, TOK.addAssign, __traits(classInstanceSize, AddAssignExp), e1, e2);
     }
 
     override void accept(Visitor v)
@@ -5936,9 +5949,12 @@ extern (C++) final class ModAssignExp : BinAssignExp
  */
 extern (C++) final class AndAssignExp : BinAssignExp
 {
+    /// The kind of this AST node.
+    package enum astNodeKind = Kind.andAssignExp;
+
     extern (D) this(const ref Loc loc, Expression e1, Expression e2)
     {
-        super(loc, TOK.andAssign, __traits(classInstanceSize, AndAssignExp), e1, e2);
+        super(astNodeKind, loc, TOK.andAssign, __traits(classInstanceSize, AndAssignExp), e1, e2);
     }
 
     override void accept(Visitor v)
@@ -6100,9 +6116,12 @@ extern (C++) final class CatDcharAssignExp : CatAssignExp
  */
 extern (C++) final class AddExp : BinExp
 {
+    /// The kind of this AST node.
+    package enum astNodeKind = Kind.addExp;
+
     extern (D) this(const ref Loc loc, Expression e1, Expression e2)
     {
-        super(loc, TOK.add, __traits(classInstanceSize, AddExp), e1, e2);
+        super(astNodeKind, loc, TOK.add, __traits(classInstanceSize, AddExp), e1, e2);
     }
 
     override void accept(Visitor v)
@@ -6262,9 +6281,12 @@ extern (C++) final class UshrExp : BinExp
  */
 extern (C++) final class AndExp : BinExp
 {
+    /// The kind of this AST node.
+    package enum astNodeKind = Kind.andExp;
+
     extern (D) this(const ref Loc loc, Expression e1, Expression e2)
     {
-        super(loc, TOK.and, __traits(classInstanceSize, AndExp), e1, e2);
+        super(astNodeKind, loc, TOK.and, __traits(classInstanceSize, AndExp), e1, e2);
     }
 
     override void accept(Visitor v)

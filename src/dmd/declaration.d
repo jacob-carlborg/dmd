@@ -296,15 +296,14 @@ extern (C++) abstract class Declaration : Dsymbol
     // overridden symbol with pragma(mangle, "...")
     const(char)[] mangleOverride;
 
-    final extern (D) this(Identifier ident)
+    final extern (D) this(Kind nodeKind, Identifier ident)
     {
-        super(ident);
-        protection = Prot(Prot.Kind.undefined);
+        this(nodeKind, Loc.initial, ident);
     }
 
-    final extern (D) this(const ref Loc loc, Identifier ident)
+    final extern (D) this(Kind nodeKind, const ref Loc loc, Identifier ident)
     {
-        super(loc, ident);
+        super(nodeKind, loc, ident);
         protection = Prot(Prot.Kind.undefined);
     }
 
@@ -695,13 +694,16 @@ extern (C++) final class TupleDeclaration : Declaration
  */
 extern (C++) final class AliasDeclaration : Declaration
 {
+    /// The kind of this AST node.
+    package enum astNodeKind = Kind.aliasDeclaration;
+
     Dsymbol aliassym;
     Dsymbol overnext;   // next in overload list
     Dsymbol _import;    // !=null if unresolved internal alias for selective import
 
     extern (D) this(const ref Loc loc, Identifier ident, Type type)
     {
-        super(loc, ident);
+        super(astNodeKind, loc, ident);
         //printf("AliasDeclaration(id = '%s', type = %p)\n", id.toChars(), type);
         //printf("type = '%s'\n", type.toChars());
         this.type = type;
@@ -710,7 +712,7 @@ extern (C++) final class AliasDeclaration : Declaration
 
     extern (D) this(const ref Loc loc, Identifier ident, Dsymbol s)
     {
-        super(loc, ident);
+        this(loc, ident, null);
         //printf("AliasDeclaration(id = '%s', s = %p)\n", id.toChars(), s);
         assert(s != this);
         this.aliassym = s;

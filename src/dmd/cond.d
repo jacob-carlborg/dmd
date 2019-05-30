@@ -56,8 +56,9 @@ extern (C++) abstract class Condition : ASTNode
         return DYNCAST.condition;
     }
 
-    extern (D) this(const ref Loc loc)
+    extern (D) this(Kind nodeKind, const ref Loc loc)
     {
+        super(nodeKind);
         this.loc = loc;
     }
 
@@ -434,9 +435,10 @@ extern (C++) class DVCondition : Condition
     Identifier ident;
     Module mod;
 
-    extern (D) this(Module mod, uint level, Identifier ident)
+    extern (D) this(Kind nodeKind, Module mod, uint level, Identifier ident)
     {
-        super(Loc.initial);
+        super(nodeKind, Loc.initial);
+
         this.mod = mod;
         this.level = level;
         this.ident = ident;
@@ -457,6 +459,9 @@ extern (C++) class DVCondition : Condition
  */
 extern (C++) final class DebugCondition : DVCondition
 {
+    /// The kind of this AST node.
+    package enum astNodeKind = Kind.debugCondition;
+
     /**
      * Add an user-supplied identifier to the list of global debug identifiers
      *
@@ -502,7 +507,7 @@ extern (C++) final class DebugCondition : DVCondition
      */
     extern (D) this(Module mod, uint level, Identifier ident)
     {
-        super(mod, level, ident);
+        super(astNodeKind, mod, level, ident);
     }
 
     override int include(Scope* sc)
@@ -565,6 +570,9 @@ extern (C++) final class DebugCondition : DVCondition
  */
 extern (C++) final class VersionCondition : DVCondition
 {
+    /// The kind of this AST node.
+    package enum astNodeKind = Kind.versionCondition;
+
     /**
      * Check if a given version identifier is reserved.
      *
@@ -773,7 +781,7 @@ extern (C++) final class VersionCondition : DVCondition
      */
     extern (D) this(Module mod, uint level, Identifier ident)
     {
-        super(mod, level, ident);
+        super(astNodeKind, mod, level, ident);
     }
 
     override int include(Scope* sc)
@@ -831,11 +839,14 @@ extern (C++) final class VersionCondition : DVCondition
  */
 extern (C++) final class StaticIfCondition : Condition
 {
+    /// The kind of this AST node.
+    package enum astNodeKind = Kind.staticIfCondition;
+
     Expression exp;
 
     extern (D) this(const ref Loc loc, Expression exp)
     {
-        super(loc);
+        super(astNodeKind, loc);
         this.exp = exp;
     }
 

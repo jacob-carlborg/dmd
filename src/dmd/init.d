@@ -164,6 +164,9 @@ extern (C++) final class StructInitializer : Initializer
  */
 extern (C++) final class ArrayInitializer : Initializer
 {
+    /// The kind of this AST node.
+    package enum astNodeKind = Kind.arrayInitializer;
+
     Expressions index;      // indices
     Initializers value;     // of Initializer *'s
     uint dim;               // length of array being initialized
@@ -172,7 +175,7 @@ extern (C++) final class ArrayInitializer : Initializer
 
     extern (D) this(const ref Loc loc)
     {
-        super(loc, InitKind.array);
+        super(astNodeKind, loc, InitKind.array);
     }
 
     void addInit(Expression index, Initializer value)

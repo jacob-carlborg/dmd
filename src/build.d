@@ -990,7 +990,7 @@ Params:
 auto runCanThrow(T)(T args)
 {
     auto res = run(args);
-    enforce(!res.status, res.output);
+    enforce(!res.status, "\n" ~ res.output);
     return res.output;
 }
 
