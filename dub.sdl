@@ -72,7 +72,8 @@ subPackage {
     "NoBackend" \
     "GC" \
     "NoMain" \
-    "MARS"
+    "MARS" \
+    "EndLocation"
 
   excludedSourceFiles "src/dmd/backend/*"
   excludedSourceFiles "src/dmd/{\

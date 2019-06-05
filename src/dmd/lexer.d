@@ -394,6 +394,10 @@ class Lexer
                     ++p;
                     t.unsvalue = 0;
                     t.value = TOK.int32Literal;
+
+                    version (EndLocation)
+                        t.length = 1;
+
                     return;
                 }
                 goto Lnumber;
@@ -404,10 +408,17 @@ class Lexer
                     t.unsvalue = *p - '0';
                     ++p;
                     t.value = TOK.int32Literal;
+
+                    version (EndLocation)
+                        t.length = 1;
+
                     return;
                 }
             Lnumber:
                 t.value = number(t);
+
+                version (EndLocation)
+                    t.length = p - t.ptr;
                 return;
 
             case '\'':
@@ -416,9 +427,17 @@ class Lexer
                     t.unsvalue = p[1];        // simple one character literal
                     t.value = TOK.charLiteral;
                     p += 3;
+
+                    version (EndLocation)
+                        t.length = 3;
                 }
                 else
+                {
                     t.value = charConstant(t);
+
+                    version (EndLocation)
+                        t.length = p - t.ptr;
+                }
                 return;
             case 'r':
                 if (p[1] != '"')
@@ -427,6 +446,10 @@ class Lexer
                 goto case '`';
             case '`':
                 wysiwygStringConstant(t);
+
+                version (EndLocation)
+                    t.length = p - t.ptr;
+
                 return;
             case 'x':
                 if (p[1] != '"')
@@ -437,24 +460,40 @@ class Lexer
                 t.value = hexStringConstant(t);
                 hexString.write(start, p - start);
                 error("Built-in hex string literals are obsolete, use `std.conv.hexString!%s` instead.", hexString.extractChars());
+
+                version (EndLocation)
+                    t.length = p - t.ptr;
+
                 return;
             case 'q':
                 if (p[1] == '"')
                 {
                     p++;
                     delimitedStringConstant(t);
+
+                    version (EndLocation)
+                        t.length = p - t.ptr;
+
                     return;
                 }
                 else if (p[1] == '{')
                 {
                     p++;
                     tokenStringConstant(t);
+
+                    version (EndLocation)
+                        t.length = p - t.ptr;
+
                     return;
                 }
                 else
                     goto case_ident;
             case '"':
                 escapeStringConstant(t);
+
+                version (EndLocation)
+                    t.length = p - t.ptr;
+
                 return;
             case 'a':
             case 'b':
@@ -584,6 +623,10 @@ class Lexer
                         }
                     }
                     //printf("t.value = %d\n",t.value);
+
+                    version (EndLocation)
+                        t.length = p - t.ptr;
+
                     return;
                 }
             case '/':

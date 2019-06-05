@@ -529,7 +529,7 @@ void processEnvironment()
     string[] warnings;
 
       // TODO: allow adding new flags from the environment
-    string[] dflags = ["-version=MARS", "-w", "-de", "-dip25", env["PIC_FLAG"], env["MODEL_FLAG"], "-J"~env["G"]];
+    string[] dflags = ["-version=MARS", "-version=EndLocation", "-w", "-de", "-dip25", env["PIC_FLAG"], env["MODEL_FLAG"], "-J"~env["G"]];
 
     flags["BACK_FLAGS"] = ["-I"~env["ROOT"], "-I"~env["C"], "-I"~env["G"], "-I"~env["D"], "-DDMDV2=1"];
 

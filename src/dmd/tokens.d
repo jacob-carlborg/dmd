@@ -433,6 +433,9 @@ extern (C++) struct Token
     const(char)* blockComment; // doc comment string prior to this token
     const(char)* lineComment; // doc comment for previous token
 
+    version (EndLocation)
+        size_t length;
+
     union
     {
         // Integers
