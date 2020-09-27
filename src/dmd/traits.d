@@ -26,6 +26,7 @@ import dmd.denum;
 import dmd.dimport;
 import dmd.dmodule;
 import dmd.dscope;
+import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.dtemplate;
@@ -139,6 +140,7 @@ shared static this()
         "getAttributes",
         "getFunctionAttributes",
         "getFunctionVariadicStyle",
+        "getModules",
         "getParameterStorageClasses",
         "getUnitTests",
         "getVirtualIndex",
@@ -1466,6 +1468,53 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
         auto tup = new TupleExp(e.loc, exps);
         return tup.expressionSemantic(sc);
+    }
+    if (e.ident == Id.getModules)
+    {
+        OutBuffer buffer;
+
+        static StructDeclaration sd;
+
+        if (!sd)
+        {
+            sd = new StructDeclaration(e.loc, Identifier.generateAnonymousId("module"), false);
+            auto name = new VarDeclaration(e.loc, Type.tstring, Identifier.idPool("name"), null);
+            auto isRoot = new VarDeclaration(e.loc, Type.tbool, Identifier.idPool("isRoot"), null);
+            auto members = new Dsymbols;
+            members.push(name);
+            members.push(isRoot);
+            sd.members = members;
+            sd.parent = sc.parent;
+            sd.dsymbolSemantic(sc);
+        }
+
+        alias fullyQualifiedName = (m) {
+            m.fullyQualifiedName(buffer);
+            return new StringExp(e.loc, buffer.extractSlice);
+        };
+
+        alias toValues = (m) {
+            auto array = new Expressions;
+            array.push(fullyQualifiedName(m));
+            array.push(m.isRoot ? True() : False());
+
+            return array;
+        };
+
+        alias toStructLiteralExp = m =>
+            new StructLiteralExp(e.loc, sd, toValues(m), sd.type);
+
+        auto rootModules = Module
+            .amodules
+            .opSlice
+            .map!toStructLiteralExp;
+
+        auto strings = new Expressions;
+
+        foreach (m; rootModules)
+            strings.push(m);
+
+        return new TupleExp(e.loc, strings).expressionSemantic(sc);
     }
     if (e.ident == Id.getLinkage)
     {
