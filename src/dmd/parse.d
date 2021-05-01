@@ -1483,7 +1483,7 @@ final class Parser(AST) : Lexer
     /***********************************************
      * Parse const/immutable/shared/inout/nothrow/pure postfix
      */
-    private StorageClass parsePostfix(StorageClass storageClass, AST.Expressions** pudas)
+    private StorageClass parsePostfix(StorageClass storageClass, AST.Expressions** pudas, AST.Expressions** pthrowArgs)
     {
         while (1)
         {
@@ -1540,6 +1540,23 @@ final class Parser(AST) : Lexer
                         continue;
                     }
                     break;
+                }
+            case TOK.throw_:
+                {
+                    nextToken();
+                    if (token.value == TOK.leftParentheses)
+                    {
+                        // Multi-UDAs ( `@( ArgumentList )`) form, concatenate with existing
+                        if (peekNext() == TOK.rightParentheses)
+                            error("empty throw list is not allowed");
+                        auto throwArgs = parseArguments();
+
+                        if (pthrowArgs)
+                            *pthrowArgs = throwArgs;
+                    }
+                    else
+                        error("`throw(ArgumentList)` expected, not `@%s`", token.toChars());
+                    continue;
                 }
             default:
                 return storageClass;
@@ -2470,7 +2487,7 @@ final class Parser(AST) : Lexer
             nextToken();
             check(TOK.rightParentheses);
 
-            stc = parsePostfix(stc, &udas);
+            stc = parsePostfix(stc, &udas, null);
             if (stc & STC.immutable_)
                 deprecation("`immutable` postblit is deprecated. Please use an unqualified postblit.");
             if (stc & STC.shared_)
@@ -2504,7 +2521,7 @@ final class Parser(AST) : Lexer
         /* Just a regular constructor
          */
         auto parameterList = parseParameterList(null);
-        stc = parsePostfix(stc, &udas);
+        stc = parsePostfix(stc, &udas, null);
 
         if (parameterList.varargs != AST.VarArg.none || AST.Parameter.dim(parameterList.parameters) != 0)
         {
@@ -2560,7 +2577,7 @@ final class Parser(AST) : Lexer
         check(TOK.leftParentheses);
         check(TOK.rightParentheses);
 
-        stc = parsePostfix(stc, &udas);
+        stc = parsePostfix(stc, &udas, null);
         if (StorageClass ss = stc & (STC.shared_ | STC.static_))
         {
             if (ss == STC.static_)
@@ -2596,7 +2613,7 @@ final class Parser(AST) : Lexer
         check(TOK.leftParentheses);
         check(TOK.rightParentheses);
 
-        stc = parsePostfix(stc & ~STC.TYPECTOR, null) | stc;
+        stc = parsePostfix(stc & ~STC.TYPECTOR, null, null) | stc;
         if (stc & STC.shared_)
             error(loc, "use `shared static this()` to declare a shared static constructor");
         else if (stc & STC.static_)
@@ -2631,7 +2648,7 @@ final class Parser(AST) : Lexer
         check(TOK.leftParentheses);
         check(TOK.rightParentheses);
 
-        stc = parsePostfix(stc & ~STC.TYPECTOR, &udas) | stc;
+        stc = parsePostfix(stc & ~STC.TYPECTOR, &udas, null) | stc;
         if (stc & STC.shared_)
             error(loc, "use `shared static ~this()` to declare a shared static destructor");
         else if (stc & STC.static_)
@@ -2672,7 +2689,7 @@ final class Parser(AST) : Lexer
         check(TOK.leftParentheses);
         check(TOK.rightParentheses);
 
-        stc = parsePostfix(stc & ~STC.TYPECTOR, null) | stc;
+        stc = parsePostfix(stc & ~STC.TYPECTOR, null, null) | stc;
         if (StorageClass ss = stc & (STC.shared_ | STC.static_))
             appendStorageClass(stc, ss); // complaint for the redundancy
         else if (StorageClass modStc = stc & STC.TYPECTOR)
@@ -2706,7 +2723,7 @@ final class Parser(AST) : Lexer
         check(TOK.leftParentheses);
         check(TOK.rightParentheses);
 
-        stc = parsePostfix(stc & ~STC.TYPECTOR, &udas) | stc;
+        stc = parsePostfix(stc & ~STC.TYPECTOR, &udas, null) | stc;
         if (StorageClass ss = stc & (STC.shared_ | STC.static_))
             appendStorageClass(stc, ss); // complaint for the redundancy
         else if (StorageClass modStc = stc & STC.TYPECTOR)
@@ -4051,7 +4068,7 @@ final class Parser(AST) : Lexer
 
                     auto parameterList = parseParameterList(null);
 
-                    StorageClass stc = parsePostfix(STC.undefined_, null);
+                    StorageClass stc = parsePostfix(STC.undefined_, null, null);
                     auto tf = new AST.TypeFunction(parameterList, t, linkage, stc);
                     if (stc & (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild | STC.return_))
                     {
@@ -4088,7 +4105,8 @@ final class Parser(AST) : Lexer
      */
     private AST.Type parseDeclarator(AST.Type t, ref int palt, out Identifier pident,
         AST.TemplateParameters** tpl = null, StorageClass storageClass = 0,
-        bool* pdisable = null, AST.Expressions** pudas = null)
+        bool* pdisable = null, AST.Expressions** pudas = null,
+        AST.Expressions** pthrowArgs = null)
     {
         //printf("parseDeclarator(tpl = %p)\n", tpl);
         t = parseTypeSuffixes(t);
@@ -4225,7 +4243,7 @@ final class Parser(AST) : Lexer
                     /* Parse const/immutable/shared/inout/nothrow/pure/return postfix
                      */
                     // merge prefix storage classes
-                    StorageClass stc = parsePostfix(storageClass, pudas);
+                    StorageClass stc = parsePostfix(storageClass, pudas, pthrowArgs);
 
                     AST.Type tf = new AST.TypeFunction(parameterList, t, linkage, stc);
                     tf = tf.addSTC(stc);
@@ -4793,7 +4811,8 @@ final class Parser(AST) : Lexer
             const loc = token.loc;
             Identifier ident;
 
-            auto t = parseDeclarator(ts, alt, ident, &tpl, storage_class, &disable, &udas);
+            AST.Expressions* throwArgs;
+            auto t = parseDeclarator(ts, alt, ident, &tpl, storage_class, &disable, &udas, &throwArgs);
             assert(t);
             if (!tfirst)
                 tfirst = t;
@@ -4896,6 +4915,8 @@ final class Parser(AST) : Lexer
                     ax.push(s);
                     s = new AST.UserAttributeDeclaration(udas, ax);
                 }
+                if (throwArgs)
+                    f.throwArgs = throwArgs;
 
                 /* A template parameter list means it's a function template
                  */
@@ -5039,7 +5060,7 @@ final class Parser(AST) : Lexer
                 // (parameters) => expression
                 // (parameters) { statements... }
                 parameterList = parseParameterList(&tpl);
-                stc = parsePostfix(stc, null);
+                stc = parsePostfix(stc, null, null);
                 if (StorageClass modStc = stc & STC.TYPECTOR)
                 {
                     if (save == TOK.function_)
@@ -6449,7 +6470,7 @@ LagainStc:
                 Loc labelloc;
 
                 nextToken();
-                StorageClass stc = parsePostfix(STC.undefined_, null);
+                StorageClass stc = parsePostfix(STC.undefined_, null, null);
                 if (stc & (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild))
                     error("`const`/`immutable`/`shared`/`inout` attributes are not allowed on `asm` blocks");
 

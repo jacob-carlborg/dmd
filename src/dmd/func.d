@@ -349,6 +349,8 @@ extern (C++) class FuncDeclaration : Declaration
      */
     ObjcFuncDeclaration objc;
 
+    Expressions* throwArgs;
+
     extern (D) this(const ref Loc loc, const ref Loc endloc, Identifier ident, StorageClass storage_class, Type type)
     {
         super(loc, ident);
@@ -372,6 +374,11 @@ extern (C++) class FuncDeclaration : Declaration
     static FuncDeclaration create(const ref Loc loc, const ref Loc endloc, Identifier id, StorageClass storage_class, Type type)
     {
         return new FuncDeclaration(loc, endloc, id, storage_class, type);
+    }
+
+    bool isZeroCostErrorHandling()
+    {
+        return throwArgs !is null;
     }
 
     override FuncDeclaration syntaxCopy(Dsymbol s)
