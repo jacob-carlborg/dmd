@@ -12,11 +12,16 @@
 module dmd.zero_cost_error_handling;
 
 import dmd.arraytypes;
+import dmd.dscope;
 import dmd.dtemplate;
+import dmd.expression;
+import dmd.expressionsem;
 import dmd.func;
+import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
-import dmd.dscope;
+import dmd.statement;
+import dmd.statementsem;
 import dmd.typesem;
 
 Type transformReturnType(FuncDeclaration funcdecl, Scope* sc)
@@ -35,3 +40,23 @@ Type transformReturnType(FuncDeclaration funcdecl, Scope* sc)
     return typeInstance.typeSemantic(funcdecl.loc, sc);
 }
 
+Statement transformThrowStatement(ThrowStatement ts, Scope* sc)
+{
+    auto tiargs = new Objects;
+    tiargs.reserve(sc.func.throwArgs.length + 1);
+    auto funcType = sc.func.type.isTypeFunction;
+    assert(funcType);
+    tiargs.push(funcType.next);
+
+    foreach (arg; sc.func.throwArgs.opSlice)
+        tiargs.push(arg);
+
+    auto resultIdentifier = Identifier.idPool("Result");
+    auto rootIdentifier = new IdentifierExp(ts.loc, Id.empty);
+    auto dt = new DotTemplateInstanceExp(ts.loc, rootIdentifier, resultIdentifier, tiargs);
+
+    auto resultCall = CallExp.create(ts.loc, dt, ts.exp);
+    auto rs = new ReturnStatement(ts.loc, resultCall);
+    rs.isZeroCostErrorHandlingTransformed = true;
+    return rs.statementSemantic(sc);
+}

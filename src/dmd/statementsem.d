@@ -59,6 +59,7 @@ import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
 import dmd.compiler;
+import dmd.zero_cost_error_handling;
 
 version (DMDLIB)
 {
@@ -4099,6 +4100,12 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
          */
 
         //printf("ThrowStatement::semantic()\n");
+
+        if (sc.func.isZeroCostErrorHandling)
+        {
+            result = transformThrowStatement(ts, sc);
+            return;
+        }
 
         if (!global.params.useExceptions)
         {
