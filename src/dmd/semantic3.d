@@ -68,6 +68,7 @@ import dmd.target;
 import dmd.templateparamsem;
 import dmd.typesem;
 import dmd.visitor;
+import dmd.zero_cost_error_handling;
 
 enum LOG = false;
 
@@ -600,6 +601,12 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     if (f.checkRetType(funcdecl.loc))
                         funcdecl.fbody = new ErrorStatement();
                 }
+
+                if (funcdecl.isZeroCostErrorHandling)
+                {
+                    f.next = transformReturnType(funcdecl, sc);
+                }
+
                 if (global.params.vcomplex && f.next !is null)
                     f.next.checkComplexTransition(funcdecl.loc, sc);
 
