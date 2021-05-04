@@ -1874,15 +1874,19 @@ extern (C++) final class ReturnStatement : Statement
     Expression exp;
     size_t caseDim;
 
-    extern (D) this(const ref Loc loc, Expression exp)
+    /// `true` if a throw statement was transformed into this return statement.
+    bool isZeroCostErrorHandlingTransformed = false;
+
+    extern (D) this(const ref Loc loc, Expression exp, bool isZeroCostErrorHandlingTransformed = false)
     {
         super(loc, STMT.Return);
         this.exp = exp;
+        this.isZeroCostErrorHandlingTransformed = isZeroCostErrorHandlingTransformed;
     }
 
     override ReturnStatement syntaxCopy()
     {
-        return new ReturnStatement(loc, exp ? exp.syntaxCopy() : null);
+        return new ReturnStatement(loc, exp ? exp.syntaxCopy() : null, isZeroCostErrorHandlingTransformed);
     }
 
     override inout(ReturnStatement) endsWithReturnStatement() inout nothrow pure

@@ -3168,6 +3168,11 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
             TypeFunction tf = cast(TypeFunction)fd.type;
         assert(tf.ty == Tfunction);
 
+        if (fd.isZeroCostErrorHandling && !rs.isZeroCostErrorHandlingTransformed)
+        {
+            rs = transformReturnStatement(rs, sc);
+        }
+
         if (rs.exp && rs.exp.op == TOK.variable && (cast(VarExp)rs.exp).var == fd.vresult)
         {
             // return vresult;

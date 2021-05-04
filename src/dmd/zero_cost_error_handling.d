@@ -60,3 +60,20 @@ Statement transformThrowStatement(ThrowStatement ts, Scope* sc)
     rs.isZeroCostErrorHandlingTransformed = true;
     return rs.statementSemantic(sc);
 }
+
+ReturnStatement transformReturnStatement(ReturnStatement rs, Scope* sc)
+{
+    auto tiargs = new Objects;
+    tiargs.reserve(sc.func.throwArgs.length + 1);
+    tiargs.push(sc.func.type.isTypeFunction.next);
+
+    foreach (arg; sc.func.throwArgs.opSlice)
+        tiargs.push(arg);
+
+    auto resultIdentifier = Identifier.idPool("Result");
+    auto rootIdentifier = new IdentifierExp(rs.loc, Id.empty);
+    auto dt = new DotTemplateInstanceExp(rs.loc, rootIdentifier, resultIdentifier, tiargs);
+
+    auto resultCall = CallExp.create(rs.loc, dt, rs.exp);
+    return new ReturnStatement(rs.loc, resultCall);
+}
