@@ -11,11 +11,13 @@
 
 module dmd.zero_cost_error_handling;
 
+import dmd.root.array;
 import dmd.arraytypes;
 import dmd.dscope;
 import dmd.dtemplate;
 import dmd.expression;
 import dmd.expressionsem;
+import dmd.errors;
 import dmd.func;
 import dmd.id;
 import dmd.identifier;
@@ -59,6 +61,43 @@ Statement transformThrowStatement(ThrowStatement ts, Scope* sc)
     auto rs = new ReturnStatement(ts.loc, resultCall);
     rs.isZeroCostErrorHandlingTransformed = true;
     return rs.statementSemantic(sc);
+}
+
+/**
+ * Checks if the given throw statement is semantically valid.
+ *
+ * Params:
+ *  ts = the throw statement to check
+ *  sc = the scope
+ *
+ * Returns: `true` if the throw statement was valid
+ */
+bool checkThrowStatement(ThrowStatement ts, Scope* sc)
+{
+    auto func = sc.func;
+    assert(func);
+
+    auto throwType = ts.exp.expressionSemantic(sc).type;
+    auto throwArgs = func.throwArgs.opSlice;
+
+    auto foundMatchingType = !throwArgs
+        .filter!(a => throwType.equals(a.expressionSemantic(sc).type))
+        .empty;
+
+    if (foundMatchingType)
+        return true;
+
+    ts.error("Cannot throw expression `%s` of type `%s`", ts.exp.toChars(),
+        throwType.toChars());
+
+    auto validThrowTypes = throwArgs
+        .map!(a => '`' ~ a.toString ~ '`')
+        .join(", ");
+
+    errorSupplemental(ts.loc, "Valid types to throw are: %.*s",
+            cast(int) validThrowTypes.length, validThrowTypes.ptr);
+
+    return false;
 }
 
 ReturnStatement transformReturnStatement(ReturnStatement rs, Scope* sc)

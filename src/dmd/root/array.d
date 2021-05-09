@@ -1019,6 +1019,42 @@ pure nothrow @safe @nogc unittest
     static assert(c.walkLength == 2);
 }
 
+string join(Range)(Range range, string separator)
+if (isInputRange!Range)
+{
+    bool first = true;
+    string result;
+
+    foreach (e; range)
+    {
+        if (first)
+        {
+            first = false;
+            result ~= e;
+            continue;
+        }
+
+        result ~= separator;
+        result ~= e;
+    }
+
+    return result;
+}
+
+///
+pure nothrow @safe @nogc unittest
+{
+    enum a = ["foo", "bar"].staticArray;
+    assert(a.join(":") == "foo:bar");
+}
+
+///
+pure nothrow @safe @nogc unittest
+{
+    enum a = ["foo"].staticArray;
+    assert(a.join(":") == "foo");
+}
+
 /// Evaluates to the element type of `R`.
 template ElementType(R)
 {

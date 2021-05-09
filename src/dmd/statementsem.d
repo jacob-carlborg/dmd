@@ -4108,6 +4108,9 @@ private extern (C++) final class StatementSemanticVisitor : Visitor
 
         if (sc.func.isZeroCostErrorHandling)
         {
+            if (!checkThrowStatement(ts, sc))
+                return;
+
             result = transformThrowStatement(ts, sc);
             return;
         }
